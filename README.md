@@ -1,218 +1,116 @@
-# AI Gauge 0.3 — Rust / native desktop
+﻿# AI Gauge
 
-Aplikacja do monitorowania limitów i środków usług AI w systemowym tray.
-Kod aplikacji i integracji jest w Rust. Okno ma natywny interfejs Slint w stylu Fluent, z jasnym i ciemnym motywem;
-tray korzysta z Win32 na Windows i StatusNotifier na Linux. Nie ma Pythona, Electron ani webview w interfejsie aplikacji.
+Native Rust desktop app for monitoring AI usage limits and API balances in the system tray. Uses Slint with a software renderer; Python, Node.js, Qt, and a webview are not required.
 
-## Uruchomienie gotowej aplikacji
+Supports **Windows x64 (MSVC)** and **Linux x86-64**. macOS is not supported. The application interface is currently in Polish. See the [Polish user guide](README.pl.md) for detailed account setup and usage.
 
-W paczce z gotowymi programami:
+## Clone and run
 
-- **Windows 11 x64:** uruchom `Windows/AI-Gauge.exe`. Możesz przenieść samo EXE.
-  Wymaga wyłącznie bibliotek systemowych Windows. Nie wymaga Rust, Pythona ani Qt.
-- **Fedora 44 x86-64:** uruchom `Linux/ai-gauge`. W razie potrzeby nadaj plikowi
-  uprawnienie wykonywania: `chmod +x Linux/ai-gauge`. Wymagane biblioteki pulpitu:
-  `sudo dnf install fontconfig libxkbcommon libX11 libXcursor libXi libXrandr gnome-keyring`.
-- W GNOME ikona tray wymaga rozszerzenia **AppIndicator and KStatusNotifierItem Support**.
-  Bez obsługi tray aplikacja pozostawia okno dostępne. KDE obsługuje tray standardowo.
+Install [Git](https://git-scm.com/) and [Rust through rustup](https://rustup.rs/), plus the prerequisites below. `rust-toolchain.toml` selects Rust 1.97.0 and the formatting/lint tools automatically. Keep `Cargo.lock` to use the tested dependency versions.
 
-Windows może umieścić ikonę pod strzałką ukrytych ikon; można ją przeciągnąć na pasek.
-Nie ma obowiązku uruchamiania programu jako administrator. EXE nie jest podpisane
-certyfikatem wydawcy.
+### Windows
 
-`--demo` uruchamia przykładowe dane offline. `--smoke-test` dodatkowo zamyka okno
-po trzech sekundach; ten tryb służy do testowania startu programu bez kont i sieci.
+Install **Build Tools for Visual Studio** with **Desktop development with C++**, including the MSVC x64 compiler and Windows SDK. Use the default `x86_64-pc-windows-msvc` Rust host. Restart your terminal after installation.
 
-## Korzystanie
+In PowerShell:
 
-1. Wybierz usługę w panelu po lewej i otwórz **Konto i ustawienia**.
-2. Dla kont subskrypcyjnych użyj **Zaloguj się z ChatGPT** lub **Zaloguj w przeglądarce**. Dla API wklej klucz
-   w zamaskowane pole, zaznacz monitorowanie i zapisz ustawienia.
-3. Przycisk **Odśwież** pobiera dane aktywnych usług. Odczyt odbywa się w tle;
-   sieć, logowanie i magazyn kluczy nie blokują głównego wątku GUI.
-4. W podglądzie kliknij **Pokaż na ikonie** na karcie licznika.
-   Możesz również wybrać licznik w menu prawego przycisku ikony.
-5. Zamknięcie okna chowa je do tray. Całkowite zamknięcie jest osobną opcją menu
-   oraz przyciskiem w oknie. Lewy przycisk ikony przywraca okno.
-
-Całą ikonę zajmuje **duża liczba**, bez znaku `%` i paska postępu. Domyślnie jest to
-wykorzystany procent. Aby pokazywać pozostały limit, otwórz **Ustawienia**,
-zaznacz **Pokaż pozostały limit zamiast
-wykorzystanego** i kliknij **Zapisz opcje aplikacji**. Wybór jest zapamiętywany.
-Zmiana obejmuje ikonę, podpowiedź, menu, przegląd, karty limitów i paski postępu
-dla ChatGPT/Codex, Claude i Gemini: np. 37% wykorzystania staje się 63% pozostałego
-limitu. Procenty własnych budżetów API, salda i kredyty pozostają bez zmian.
-Menu grupuje wszystkie
-odczytane liczniki według usług; zawiera także środki, daty resetu, odświeżanie,
-pokazanie okna i zamknięcie. `?` oznacza brak procentu, nieaktualne dane lub błąd,
-a nie zerowe wykorzystanie. Dla bardzo dużych przekroczeń budżetu ikona pokazuje
-`!`; dokładny procent pozostaje w oknie i menu. Wybór jest zapamiętywany.
-
-### Wygląd i kolejność usług
-
-W **Ustawieniach** wybierz motyw systemowy, jasny lub ciemny i wielkość tekstu
-100%, 125%, 150% albo 200%. Te ustawienia zapisują się automatycznie.
-W małym oknie nawigacja przenosi się nad treść, a długie widoki można przewijać.
-
-**Dostosuj usługi** pozwala ukrywać usługi i zmieniać ich kolejność uchwytem,
-przyciskami **Przenieś w górę / w dół** lub strzałkami klawiatury na aktywnym
-wierszu. Przegląd i lista nawigacji korzystają ze wspólnej kolejności i widoczności.
-Zmiany zapisują się automatycznie. Ukrywanie nie wyłącza monitorowania ani
-przypiętego licznika tray. Ukryte usługi można przywrócić w tym samym widoku;
-przycisk resetowania przywraca domyślną kolejność i widoczność.
-
-## Integracje i znaczenie wartości
-
-| Usługa | Dostęp | Dane |
-|---|---|---|
-| ChatGPT / Codex | Oficjalna autoryzacja OpenAI: przeglądarka lub kod urządzenia | Liczniki Codex dostępne dla konta; to nie uniwersalny licznik wszystkich rozmów ChatGPT |
-| OpenAI API | Klucz **administracyjny** organizacji | Raport kosztów całej organizacji w bieżącym miesiącu UTC; % własnego budżetu |
-| DeepSeek API | Zwykły własny klucz API | Rzeczywiste saldo USD/CNY, środki promocyjne i doładowane; opcjonalnie % własnej kwoty odniesienia |
-| Claude Code / Claude | Logowanie Claude w oddzielnym profilu przeglądarki | Limity sesji, tygodnia i pozostałe zwrócone liczniki wykorzystania z panelu Usage |
-| Anthropic API | Klucz **administracyjny** organizacji | Koszt organizacji w bieżącym miesiącu UTC; obejmuje też Claude Code rozliczane tym API |
-| Gemini | Logowanie Google w oddzielnym profilu przeglądarki | Dostępne dla konta procenty z panelu Limity wykorzystania |
-
-**OpenAI i Anthropic:** raport kosztów nie jest saldem przedpłaty. Zwykły klucz do
-generowania nie ma wymaganych uprawnień do tego raportu. Budżet jest wyłącznie
-własnym progiem do wyświetlania procentu i nie ogranicza wydatków na serwerze.
-Raporty mogą być opóźnione. Ta wersja nie pokazuje RPM/TPM.
-
-Procent API = `koszt miesiąca / własny budżet × 100`.
-Procent DeepSeek = `max(0, (kwota odniesienia − saldo) / kwota odniesienia × 100)`
-i jest liczony tylko w wybranej walucie. Po doładowaniu można zmienić kwotę
-odniesienia. Bez dodatniej kwoty odniesienia/budżetu pokazujemy samą kwotę.
-
-### Logowanie kont
-
-Dla Claude i Gemini aplikacja otwiera zainstalowany Edge, Chrome lub Chromium z **własnym profilem
-danej usługi**. Na Windows Edge jest wykrywany automatycznie. Nie przejmuje
-codziennego profilu przeglądarki, nie importuje jego cookies i nie odczytuje haseł.
-W otwartym oknie zaloguj się na stronie dostawcy. Nie trzeba logować do synchronizacji
-samej przeglądarki. Dla Claude otwórz panel limitów i naciśnij Odśwież w AI Gauge.
-Nie ma ręcznego wybierania elementów strony ani konfiguracji selektorów CSS.
-
-**Gemini — logowanie w dwóch krokach:** w ustawieniach konta wybierz automatyczne
-wykrywanie przeglądarki, Chrome lub Edge i zapisz ustawienia. Uruchom logowanie,
-zaloguj się do Google w otwartym oknie, a następnie zamknij wszystkie okna tego
-profilu. W AI Gauge kliknij **Kontynuuj**. Okno logowania nie używa argumentów
-automatyzacji ani zdalnego debugowania; odczyt rozpoczyna się dopiero po jego
-zamknięciu. Samo otwarcie przeglądarki nie potwierdza połączenia.
-W razie odrzucenia logowania lub wygaśnięcia sesji aplikacja pokazuje błąd
-i wstrzymuje automatyczne próby; można ponowić logowanie w innej przeglądarce.
-Anulowanie wyłącza monitorowanie Gemini, zachowując lokalny profil.
-
-Claude używa panelu `https://claude.ai/settings/usage`. Jeśli konto ma kilka
-organizacji, można wpisać UUID właściwej organizacji w ustawieniach. Bez UUID
-aplikacja wybiera organizację automatycznie tylko wtedy, gdy jest dokładnie jedna.
-
-Gemini próbuje otworzyć panel **Ustawienia → Limity wykorzystania**. Jeżeli
-nie otworzy się automatycznie, otwórz go w oknie tej sesji. Odczytywane są widoczne
-paski ARIA i jednoznacznie opisane procenty. Gdy panel istnieje wyłącznie jako
-dialog, automatyczny odczyt może być niedostępny. Strona musi rzeczywiście udostępniać
-procenty dla konta. Odczyt strony może przestać działać po zmianie jej interfejsu.
-Nie ma gwarancji, że każdy plan i każde konto udostępnia taki licznik.
-
-Po zamknięciu okna logowania program może otworzyć własny profil w tle na czas
-odczytu, a następnie go zamknąć. Przy otwartej karcie odczytuje jej aktualny widok;
-jeżeli strona sama nie aktualizuje wartości, odśwież stronę/panel. Sesje dostawców
-mogą wygasać i wymagać ponownego logowania. Logowanie oraz limity nie są omijane.
-Profile Flatpak nie są automatycznie obsługiwane; potrzebna jest przeglądarka
-desktopowa dostępna jako program systemowy.
-
-**ChatGPT:** użyj **Zaloguj się z ChatGPT**. Aplikacja uruchamia oficjalny moduł
-OpenAI i otwiera autoryzację w domyślnej przeglądarce. Samo otwarcie strony nie
-potwierdza połączenia: program czeka na zakończenie logowania, sprawdza konto
-(`account/read`), pokazuje email i plan, a następnie pobiera liczniki Codex.
-Okna logowania nie zamykaj przed potwierdzeniem. Możesz anulować operację.
-
-Gdy powrót z przeglądarki nie działa, wybierz **Zaloguj kodem**, otwórz podaną
-stronę i wpisz kod widoczny w aplikacji. Logowanie kodem urządzenia może wymagać
-włączenia tej opcji w ustawieniach bezpieczeństwa konta ChatGPT.
-
-Nie musisz instalować CLI. Przy pierwszym połączeniu, jeśli nie ma Codex w PATH,
-program pobiera oficjalny `codex-app-server` z wydania `openai/codex` na GitHub
-(około 90 MB do pobrania, około 300 MB po rozpakowaniu). Weryfikuje SHA-256
-z metadanych oficjalnego wydania, a potem sumę lokalnego pliku przy każdym starcie
-modułu. Pobieranie odbywa się po kliknięciu logowania, z postępem i anulowaniem;
-nie zachodzi podczas odświeżania w tle. Gotowy moduł pozostaje w `auth-client/`.
-Jeśli jest już Codex CLI w PATH, używany jest jego `app-server`.
-
-Moduł dostaje własny katalog `CODEX_HOME`; sesja innej instalacji nie jest kopiowana.
-Program korzysta wyłącznie z metod konta i limitów, bez wysyłania promptów.
-Limity dotyczą uprawnień Codex na koncie ChatGPT; nie są uniwersalnymi limitami
-wszystkich modeli i rozmów w chatgpt.com. Stare ustawienie logowania przez
-profil CDP jest automatycznie pomijane dla ChatGPT.
-
-Przeglądarka jest adapterem logowania i danych, a nie silnikiem GUI. Jej otwarte
-procesy oczywiście zużywają dodatkową pamięć. Do samych integracji API nie jest potrzebna.
-
-### Klucze i dane lokalne
-
-Klucze są przechowywane w Windows Credential Manager lub Secret Service na Linux.
-Po odznaczeniu magazynu nowy klucz pozostaje tylko w pamięci procesu. Poprzedni
-klucz systemowy pozostaje wtedy bez zmian i może wrócić po restarcie; do jego
-usunięcia służy osobny przycisk. Puste pole zachowuje zapisany klucz. Do konfiguracji
-JSON nigdy nie trafia wartość klucza. Magazyn systemowy może wymagać odblokowania.
-
-Ustawienia, blokada drugiej instancji i profile znajdują się w katalogu danych
-aplikacji wyznaczonym przez system dla **AI Gauge Rust**. Możesz ustalić go samodzielnie:
-
-```text
-AI-Gauge.exe --data-dir C:\Users\TwojUzytkownik\AppData\Local\AI-Gauge-Rust
+```powershell
+git clone https://github.com/BarMy49/ai-gauge-rust.git
+cd ai-gauge-rust
+cargo run --locked --release -- --demo
 ```
 
-Profilów `browser/` oraz `codex/` nie udostępniaj: mogą zawierać sesje logowania.
-Szyfrowaniem cookies zarządza przeglądarka i system. Katalogi na Linux są tworzone
-z uprawnieniami 0700. Wylogowanie usuwa lokalną sesję aktualnego sposobu logowania;
-nie wylogowuje innych przeglądarek ani innych instalacji CLI.
+The first compilation downloads dependencies and can take several minutes. The executable is `target\release\ai-gauge.exe`.
 
-Wersja Rust ma osobną konfigurację i osobne wpisy magazynu kluczy. Nie importuje
-automatycznie ustawień ani sesji poprzedniej wersji Python. Brak własnego serwera,
-telemetrii i zapytań generujących tekst. Do oficjalnych API wysyłane są tylko
-żądania odczytu salda/raportów. Strony dostawców ładują swoje własne zasoby.
+### Linux
 
-„Uruchamiaj schowane” dotyczy startu programu, nie instaluje autostartu systemu.
-Opcjonalnie dodaj skrót EXE z `--hidden` do `shell:startup` w Windows.
-
-## Budowanie ze źródeł
-
-Potrzebne są Rust/Cargo **1.92 lub nowszy** i systemowy linker.
-Na Windows najprościej użyć standardowego toolchainu MSVC i Build Tools for Visual Studio
-z komponentem Desktop development with C++. Na Fedorze wystarczy m.in. `gcc`.
-Na Fedorze do budowania: `sudo dnf install gcc gcc-c++ fontconfig-devel pkgconf-pkg-config`.
-Slint kompiluje układ okna do Rust, renderer działa bez webview.
+Use a graphical desktop session. On Ubuntu 24.04 / Debian-based systems:
 
 ```bash
-cargo build --locked --release
-cargo test --locked
-cargo clippy --locked --all-targets -- -D warnings
+sudo apt-get update
+sudo apt-get install -y build-essential pkg-config libfontconfig1-dev \
+  libxkbcommon0 libxkbcommon-x11-0 libx11-6 libxcursor1 libxi6 libxrandr2 \
+  libxcb-shape0 libxcb-xfixes0 dbus-x11 gnome-keyring
 ```
 
-Wynik: `target/release/ai-gauge.exe` na Windows lub `target/release/ai-gauge` na Linux.
-Nie ma skryptów instalujących Pythona. Moduł ChatGPT jest przygotowywany na żądanie logowania.
-`Cargo.lock` jest dołączony. Układ Slint i skrypt adaptera strony są osadzone
-w programie; nie trzeba przenosić ich obok binariów.
+On Fedora:
 
-Dołączony workflow GitHub Actions buduje i testuje natywnie wersje Windows/Linux,
-w tym uruchamia trzysekundowy test startu GUI. Do zwykłego korzystania workflow
-i narzędzia programistyczne nie są potrzebne.
+```bash
+sudo dnf install gcc gcc-c++ fontconfig-devel pkgconf-pkg-config \
+  libxkbcommon libX11 libXcursor libXi libXrandr dbus-daemon gnome-keyring
+```
 
-## Zakres sprawdzenia
+Then:
 
-Informacje o rzeczywiście wykonanych testach są w `VALIDATION.md`. Kompilacja
-nie oznacza potwierdzenia logowania na wszystkie konta. Bez sesji i kluczy użytkownika
-nie potwierdzono działania rzeczywistych paneli ChatGPT, Claude i Gemini.
-Integracje tych paneli są zależne od ich bieżącego formatu.
+```bash
+git clone https://github.com/BarMy49/ai-gauge-rust.git
+cd ai-gauge-rust
+cargo run --locked --release -- --demo
+```
 
-## Źródła interfejsów
+The executable is `target/release/ai-gauge`. GNOME needs the **AppIndicator and KStatusNotifierItem Support** extension for the tray icon. KDE supports it directly. Without tray support the window stays available. A running, unlocked Secret Service (such as GNOME Keyring) is needed to remember API keys.
 
-- OpenAI costs: https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage/methods/costs
-- Codex app-server: https://learn.chatgpt.com/docs/app-server
-- DeepSeek balance: https://api-docs.deepseek.com/api/get-user-balance/
-- Anthropic costs: https://platform.claude.com/docs/en/manage-claude/usage-cost-api
-- Claude Usage: https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work
-- Gemini limits: https://support.google.com/gemini/answer/16275805?hl=pl
-- Chrome profiles / CDP: https://developer.chrome.com/blog/remote-debugging-port
+## First real launch
 
-Źródła aplikacji: MIT. Slint: Royalty-free Desktop, Mobile, and Web Applications License 2.0,
-atrybucja w oknie O aplikacji. Zależności zachowują swoje licencje; patrz THIRD-PARTY.md.
+The demo uses temporary sample data and requires no accounts or network access at runtime. To use your own accounts, omit `--demo`:
+
+```bash
+cargo run --locked --release
+```
+
+Select a service, open **Konto i ustawienia**, sign in or enter the appropriate key, enable monitoring, and save. No `.env` file or configuration editing is required.
+
+| Service | Required access |
+| --- | --- |
+| ChatGPT / Codex | ChatGPT sign-in; displays the account's Codex limits |
+| OpenAI API | Organization admin API key for cost reports |
+| DeepSeek API | Standard API key for balance reads |
+| Claude | Browser sign-in to the usage panel |
+| Anthropic API | Organization admin API key for cost reports |
+| Gemini | Browser sign-in; availability depends on the account's usage panel |
+
+Claude and Gemini need a system installation of Edge, Chrome, or Chromium. They use separate browser profiles; Flatpak browsers are not detected automatically. ChatGPT sign-in uses Codex CLI from `PATH`, or downloads the official authentication helper on demand. Initial download and sign-in require internet access. The app does not send generation prompts. Provider page changes can break browser integrations.
+
+Closing the window hides it in the tray; use the tray menu or the application's exit button to quit. Windows may put the icon in the hidden-icons area.
+
+Settings and browser sessions are stored in the OS application data directory. API keys are stored in Windows Credential Manager or Linux Secret Service when requested. To choose a data directory:
+
+```bash
+cargo run --locked --release -- --data-dir ./local-data
+```
+
+Do not commit or share that directory: browser and Codex profiles contain login sessions. See the [Polish guide](README.pl.md) for logout, budget calculations, and authentication details.
+
+## Checks and builds
+
+```bash
+cargo fmt --check
+cargo test --locked
+cargo clippy --locked --all-targets -- -D warnings
+cargo build --locked --release
+cargo run --locked --release -- --smoke-test
+```
+
+The smoke test opens the GUI with offline sample data and exits after three seconds. On headless Linux, install `xvfb` and `xauth`, then run:
+
+```bash
+dbus-run-session -- xvfb-run -a target/release/ai-gauge --smoke-test
+```
+
+[GitHub Actions](.github/workflows/build.yml) runs formatting, tests, Clippy, release builds, and GUI startup checks on Windows and Ubuntu for pushes and pull requests. Successful runs upload executable artifacts. The UI, icons, and page adapter are embedded, so source assets need not accompany the executable. Linux executables still require the desktop libraries listed above.
+
+## Troubleshooting
+
+- **Cargo not found:** restart the terminal after installing rustup and check that its Cargo bin directory is on `PATH`.
+- **Missing link.exe or Windows SDK:** install the C++ Build Tools components above and use the MSVC Rust toolchain.
+- **Fontconfig or linker errors on Linux:** install the build prerequisites above, including `pkg-config` and Fontconfig development headers.
+- **Window cannot open:** use a graphical desktop session, or the headless smoke-test command.
+- **Key storage fails:** unlock/start your desktop keyring, or enter the key for the current session without enabling storage.
+- **App already running:** restore the existing window from its tray icon or quit that instance first.
+- **Build runs out of memory:** retry with `cargo build --locked --release -j 2`.
+
+The [validation notes](VALIDATION.md) describe previous checks and integration limitations. Offline tests do not verify live provider accounts.
+
+## License
+
+Application source: [MIT](LICENSE). Slint and other dependencies retain their own licenses; see [THIRD-PARTY.md](THIRD-PARTY.md), the [Slint royalty-free license](licenses/LicenseRef-Slint-Royalty-free-2.0.md), the [Slint software license](licenses/LicenseRef-Slint-Software-3.0.md), and [GPL-3.0](licenses/GPL-3.0-only.txt).

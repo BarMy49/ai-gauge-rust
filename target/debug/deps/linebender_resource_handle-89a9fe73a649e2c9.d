@@ -1,9 +1,0 @@
-C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\linebender_resource_handle-89a9fe73a649e2c9.d: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\blob.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\font.rs
-
-C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\liblinebender_resource_handle-89a9fe73a649e2c9.rlib: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\blob.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\font.rs
-
-C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\liblinebender_resource_handle-89a9fe73a649e2c9.rmeta: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\blob.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\font.rs
-
-C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\lib.rs:
-C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\blob.rs:
-C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\linebender_resource_handle-0.1.1\src\font.rs:

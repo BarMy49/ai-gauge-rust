@@ -1,12 +1,24 @@
 name: Native desktop binaries
-on: [workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   windows:
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: '1.97.0'
           components: clippy, rustfmt
       - run: cargo fmt --check
       - run: cargo test --locked
@@ -16,7 +28,7 @@ jobs:
         timeout-minutes: 1
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath target/release/ai-gauge.exe -ArgumentList '--smoke-test' -PassThru -Wait
+          $p = Start-Process -FilePath target/release/ai-gauge.exe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru -Wait
           if ($p.ExitCode -ne 0) { throw 'GUI smoke test failed' }
       - uses: actions/upload-artifact@v4
         with:
@@ -24,17 +36,19 @@ jobs:
           path: target/release/ai-gauge.exe
   linux:
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: '1.97.0'
           components: clippy, rustfmt
-      - run: sudo apt-get update && sudo apt-get install -y pkg-config libfontconfig1-dev libxkbcommon0 libxkbcommon-x11-0 libxcb-shape0 libxcb-xfixes0 xvfb
+      - run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libfontconfig1-dev libxkbcommon0 libxkbcommon-x11-0 libx11-6 libxcursor1 libxi6 libxrandr2 libxcb-shape0 libxcb-xfixes0 xvfb xauth dbus-x11 gnome-keyring
       - run: cargo fmt --check
       - run: cargo test --locked
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo build --locked --release
-      - run: xvfb-run -a target/release/ai-gauge --smoke-test
+      - run: dbus-run-session -- xvfb-run -a target/release/ai-gauge --smoke-test
       - uses: actions/upload-artifact@v4
         with:
           name: AI-Gauge-Linux-x64
