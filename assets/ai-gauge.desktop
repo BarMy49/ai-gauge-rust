@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AI Gauge
+Comment=AI usage and balance monitor
+Exec=ai-gauge
+Icon=ai-gauge
+Terminal=false
+Categories=Utility;Network;
+StartupNotify=true

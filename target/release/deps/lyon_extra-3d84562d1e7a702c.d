@@ -1,0 +1,9 @@
+C:\MOJE\Projects\ai-gauge-rust\target\release\deps\lyon_extra-3d84562d1e7a702c.d: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\parser.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\rust_logo.rs
+
+C:\MOJE\Projects\ai-gauge-rust\target\release\deps\liblyon_extra-3d84562d1e7a702c.rlib: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\parser.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\rust_logo.rs
+
+C:\MOJE\Projects\ai-gauge-rust\target\release\deps\liblyon_extra-3d84562d1e7a702c.rmeta: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\parser.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\rust_logo.rs
+
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\lib.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\parser.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lyon_extra-1.1.0\src\rust_logo.rs:

@@ -1,0 +1,5 @@
+C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\dirs_sys-a0d7a4e21473f260.d: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\dirs-sys-0.5.0\src\lib.rs
+
+C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\libdirs_sys-a0d7a4e21473f260.rmeta: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\dirs-sys-0.5.0\src\lib.rs
+
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\dirs-sys-0.5.0\src\lib.rs:

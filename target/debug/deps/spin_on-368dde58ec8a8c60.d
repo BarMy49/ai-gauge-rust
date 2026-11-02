@@ -1,0 +1,7 @@
+C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\spin_on-368dde58ec8a8c60.d: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spin_on-0.1.1\src\lib.rs
+
+C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\libspin_on-368dde58ec8a8c60.rlib: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spin_on-0.1.1\src\lib.rs
+
+C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\libspin_on-368dde58ec8a8c60.rmeta: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spin_on-0.1.1\src\lib.rs
+
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spin_on-0.1.1\src\lib.rs:

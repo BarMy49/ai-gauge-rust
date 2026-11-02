@@ -1,0 +1,10 @@
+C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\crc32fast-c05fb9886429c37e.d: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\baseline.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\combine.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\specialized\mod.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\table.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\specialized\pclmulqdq.rs
+
+C:\MOJE\Projects\ai-gauge-rust\target\debug\deps\libcrc32fast-c05fb9886429c37e.rmeta: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\baseline.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\combine.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\specialized\mod.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\table.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\specialized\pclmulqdq.rs
+
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\lib.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\baseline.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\combine.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\specialized\mod.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\table.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\crc32fast-1.5.3\src\specialized\pclmulqdq.rs:

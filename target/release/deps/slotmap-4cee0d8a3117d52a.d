@@ -1,0 +1,12 @@
+C:\MOJE\Projects\ai-gauge-rust\target\release\deps\slotmap-4cee0d8a3117d52a.d: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\basic.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\dense.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\hop.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\secondary.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\util.rs
+
+C:\MOJE\Projects\ai-gauge-rust\target\release\deps\libslotmap-4cee0d8a3117d52a.rlib: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\basic.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\dense.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\hop.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\secondary.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\util.rs
+
+C:\MOJE\Projects\ai-gauge-rust\target\release\deps\libslotmap-4cee0d8a3117d52a.rmeta: C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\lib.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\basic.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\dense.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\hop.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\secondary.rs C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\util.rs
+
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\lib.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\basic.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\dense.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\hop.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\secondary.rs:
+C:\Users\barte\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\slotmap-1.1.1\src\util.rs:
