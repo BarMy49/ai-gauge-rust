@@ -1,0 +1,18 @@
+/target/
+/.idea/
+/.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Local credentials and optional in-repository application data.
+.env
+.env.*
+!.env.example
+/local-data/
+/browser/
+/codex/
+/auth-client/
+/settings.json
+/instance.lock
