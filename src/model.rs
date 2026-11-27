@@ -73,7 +73,7 @@ impl Service {
         Self::Chatgpt=>"Zaloguj konto ChatGPT w osobnym profilu Edge/Chrome. Odczyt dotyczy panelu Codex na tym koncie, nie wszystkich rozmów ChatGPT. Opcjonalnie odznacz tryb przeglądarki, aby użyć oficjalnego Codex CLI.",
         Self::Openai=>"Wymagany klucz ADMIN organizacji. Pokazuje koszt calej organizacji od poczatku miesiaca UTC. Procent jest liczony wzgledem Twojego budzetu; to nie saldo przedplaty ani RPM/TPM.",
         Self::Deepseek=>"Zwykly klucz API. Pokazuje rzeczywiste saldo USD/CNY. Kwota odniesienia sluzy do obliczenia procentu zuzycia; po doladowaniu mozesz ja zmienic.",
-        Self::Claude=>"Zaloguj się w osobnym zwykłym oknie Chrome lub Edge (działa też Kontynuuj z Google), zamknij je i naciśnij Odśwież. Odczyt sesji i tygodnia z panelu Usage. Integracja korzysta z wewnetrznego interfejsu strony i moze wymagac aktualizacji.",
+        Self::Claude=>"Najpewniej działa przez Claude Code: jeśli jest zalogowany na tym komputerze (claude, potem /login), limity odczytamy z jego oficjalnego logowania. Bez Claude Code zaloguj się w osobnym zwykłym oknie Chrome lub Edge, zamknij je i naciśnij Odśwież. Odczyt sesji i tygodnia z panelu Usage. Integracja korzysta z wewnetrznego interfejsu strony i moze wymagac aktualizacji.",
         Self::Anthropic=>"Wymagany klucz ADMIN. Pokazuje koszt organizacji od poczatku miesiaca UTC, takze Claude Code rozliczane tym API. Budzet jest Twoim progiem; nie odczytujemy salda przedplaty.",
         Self::Gemini=>"Zaloguj się ręcznie w osobnym zwykłym oknie Chrome lub Edge. Zamknij okna tego profilu i wybierz Kontynuuj. Potwierdzimy połączenie po odczycie limitów. Konto musi udostępniać procentowe liczniki w panelu Gemini; samo zalogowanie nie gwarantuje ich dostępności." }
     }

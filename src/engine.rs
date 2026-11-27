@@ -1,4 +1,4 @@
-use crate::{browser::BrowserPool, codex, model::*, providers, store::Store};
+use crate::{browser::BrowserPool, claude_code, codex, model::*, providers, store::Store};
 use anyhow::{ensure, Result};
 use std::{
     collections::{BTreeMap, HashSet},
@@ -544,6 +544,9 @@ impl Engine {
         if s == Service::Chatgpt {
             *self.0.login_cancel.lock().unwrap() = Some(cancel.clone());
         }
+        // Claude Code's sign-in avoids the Cloudflare check claude.ai shows to
+        // background browser reads, so it is preferred whenever it exists.
+        let via_claude_code = s == Service::Claude && claude_code::available();
         let this = self.clone();
         std::thread::spawn(move || {
             let progress = |p| this.auth_progress(p);
@@ -566,6 +569,12 @@ impl Engine {
                         codex::limits(&this.0.store.root, cancel, &progress)?
                     };
                     providers::codex(&v)
+                } else if via_claude_code {
+                    let mut rows = providers::claude(&claude_code::usage()?)?;
+                    for m in &mut rows {
+                        m.source = "Claude Code (oficjalne logowanie konta Claude)".into();
+                    }
+                    Ok(rows)
                 } else if login {
                     this.0.browser.login(s, &cfg)?;
                     Ok(vec![])
@@ -614,7 +623,7 @@ impl Engine {
                         "Wyczyszczono sesje lokalna"
                     } else if login && s == Service::Gemini {
                         "Zaloguj się ręcznie, zamknij osobne okno Gemini i wybierz Kontynuuj."
-                    } else if login && !(s == Service::Chatgpt) {
+                    } else if login && !(s == Service::Chatgpt) && !via_claude_code {
                         "Zaloguj się w otwartym oknie przeglądarki, zamknij je i naciśnij Odśwież"
                     } else {
                         "Aktualne"
