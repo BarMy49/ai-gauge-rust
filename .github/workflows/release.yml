@@ -1,5 +1,5 @@
 name: Release
-# Builds Windows, Fedora (x86_64 and aarch64) and AppImage binaries and
+# Builds Windows, Fedora .rpm (x86_64 and aarch64) and AppImage packages and
 # publishes them as a GitHub release. Runs when a tag like v0.3.0 is pushed,
 # or by hand from the Actions tab (it then creates the tag itself).
 on:
@@ -113,6 +113,13 @@ jobs:
           cd dist
           sha256sum * > SHA256SUMS.txt
           ls -la
+      - name: Replace an earlier release with the same tag
+        # Rebuilding a release uploads a fresh set of files instead of
+        # mixing them with old ones. The tag itself is kept.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes || true
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
