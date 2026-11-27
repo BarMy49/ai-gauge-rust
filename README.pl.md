@@ -10,9 +10,13 @@ W paczce z gotowymi programami:
 
 - **Windows 11 x64:** uruchom `Windows/AI-Gauge.exe`. Możesz przenieść samo EXE.
   Wymaga wyłącznie bibliotek systemowych Windows. Nie wymaga Rust, Pythona ani Qt.
-- **Fedora 44 x86-64:** uruchom `Linux/ai-gauge`. W razie potrzeby nadaj plikowi
-  uprawnienie wykonywania: `chmod +x Linux/ai-gauge`. Wymagane biblioteki pulpitu:
-  `sudo dnf install fontconfig libxkbcommon libX11 libXcursor libXi libXrandr gnome-keyring`.
+- **Fedora x86_64 / aarch64:** pobierz z [Releases](https://github.com/BarMy49/ai-gauge-rust/releases)
+  plik `ai-gauge-<wersja>-1.fc43.<arch>.rpm` i zainstaluj go poleceniem
+  `sudo dnf install ./ai-gauge-*.rpm` (dnf doinstaluje potrzebne biblioteki pulpitu).
+  Uruchom **AI Gauge** z menu aplikacji lub poleceniem `ai-gauge`. Odinstalowanie:
+  `sudo dnf remove ai-gauge`. Do zapamiętywania kluczy potrzebny jest np. `gnome-keyring`.
+- **Inny Linux x86_64:** `AI-Gauge-x86_64.AppImage` — nadaj prawo wykonywania
+  (`chmod +x AI-Gauge-x86_64.AppImage`) i uruchom.
 - W GNOME ikona tray wymaga rozszerzenia **AppIndicator and KStatusNotifierItem Support**.
   Bez obsługi tray aplikacja pozostawia okno dostępne. KDE obsługuje tray standardowo.
 
