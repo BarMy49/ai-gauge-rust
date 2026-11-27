@@ -1,20 +1,6 @@
 // Read only visible usage controls, never chat messages or form fields.
 (async () => {
- const sleep = ms => new Promise(r => setTimeout(r, ms));
  const visible = e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden';
- const exactClick = patterns => {
-   const candidates = [...document.querySelectorAll('button,[role=menuitem],a')].filter(visible);
-   const e = candidates.find(e => patterns.some(p => p.test((e.getAttribute('aria-label') || e.innerText || '').trim())));
-   if (e) {e.click(); return true;} return false;
- };
- if (location.hostname === 'gemini.google.com') {
-   if (!document.querySelector('[role=dialog]')?.innerText.match(/usage|limit|wykorzyst/i)) {
-     exactClick([/^settings(?:\s*(?:&|and)\s*help)?$/i,/^ustawienia(?: i pomoc)?$/i]);
-     await sleep(500);
-     exactClick([/^usage(?: limits)?$/i,/^limity wykorzystania$/i,/^wykorzystanie$/i]);
-     await sleep(900);
-   }
- }
  const nodes = [...document.querySelectorAll('[role=progressbar],progress')].filter(visible);
  const items=[];
  for(const e of nodes) {

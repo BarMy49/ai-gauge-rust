@@ -71,7 +71,6 @@ fn render(app: &MainWindow, s: &Snapshot) {
         _ => 0,
     });
     app.set_text_scale(s.config.text_scale.into());
-    app.set_gemini_state(s.gemini_state as i32);
     let tiles = s
         .config
         .service_order
@@ -304,10 +303,6 @@ pub fn run(engine: Engine, hidden: bool) -> Result<()> {
             render(&a, &e.snapshot());
         }
     });
-    let e = engine.clone();
-    app.on_continue_gemini_requested(move || e.continue_gemini());
-    let e = engine.clone();
-    app.on_cancel_gemini_requested(move || e.cancel_gemini());
     let e = engine.clone();
     let w = app.as_weak();
     app.on_save_requested(move || {

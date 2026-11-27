@@ -68,9 +68,8 @@ The subscription trackers read usage through each provider's own command-line to
 | --- | --- | --- |
 | ChatGPT / Codex | [Codex CLI](https://github.com/openai/codex) (`codex` on `PATH`) | `codex login` (or the app's own sign-in button) |
 | Claude Code / Claude | [Claude Code](https://docs.claude.com/en/docs/claude-code) | `claude`, then `/login` |
-| Gemini | [Gemini CLI](https://github.com/google-gemini/gemini-cli): `npm install -g @google/gemini-cli` | `gemini`, then choose "Login with Google" |
 
-AI Gauge only reads these sign-ins (`~/.codex`, `~/.claude/.credentials.json`, `~/.gemini/oauth_creds.json`) and never changes them. If Claude Code's sign-in has expired, run `claude` briefly and refresh. Without Claude Code or Gemini CLI the app falls back to the browser sign-in, which claude.ai currently blocks for background reads.
+AI Gauge only reads these sign-ins (`~/.codex`, `~/.claude/.credentials.json`) and never changes them. If Claude Code's sign-in has expired, run `claude` briefly and refresh. Without Claude Code the app falls back to the browser sign-in, which claude.ai currently blocks for background reads.
 
 To test every tracker from a terminal, run `ai-gauge --check`. It refreshes each service once and prints the readings or the error (no keys or tokens).
 
@@ -81,9 +80,8 @@ To test every tracker from a terminal, run `ai-gauge --check`. It refreshes each
 | DeepSeek API | Standard API key for balance reads |
 | Claude | Claude Code signed in on this computer (preferred), or browser sign-in to the usage panel |
 | Anthropic API | Organization admin API key for cost reports |
-| Gemini | Gemini CLI signed in on this computer (preferred), or browser sign-in |
 
-If Claude Code is signed in on this computer (`claude`, then `/login`), Claude limits are read through its sign-in, which is read-only and never changed. claude.ai blocks background browser reads with a Cloudflare check, so the browser route is only a fallback. Sign-in for Claude and Gemini opens an ordinary browser window without automation, so "Continue with Google" works. Under **Ustawienia**, a separate option shows how much of the reference amount is left for the DeepSeek balance and the OpenAI/Anthropic budgets.
+If Claude Code is signed in on this computer (`claude`, then `/login`), Claude limits are read through its sign-in, which is read-only and never changed. claude.ai blocks background browser reads with a Cloudflare check, so the browser route is only a fallback. The fallback Claude sign-in opens an ordinary browser window without automation, so "Continue with Google" works. Under **Ustawienia**, a separate option shows how much of the reference amount is left for the DeepSeek balance and the OpenAI/Anthropic budgets.
 
 Browser sign-in needs a system installation of Edge, Chrome, or Chromium; if the browser chosen in settings is not installed, any installed one is used. They use separate browser profiles; Flatpak browsers are not detected automatically. ChatGPT sign-in uses Codex CLI from `PATH`, or downloads the official authentication helper on demand. Initial download and sign-in require internet access. The app does not send generation prompts. Provider page changes can break browser integrations.
 

@@ -65,16 +65,6 @@ impl BrowserPool {
         session.begin_manual(cfg)?;
         Ok(())
     }
-    pub fn manual_running(&self) -> bool {
-        self.manual_running_for(Service::Gemini)
-    }
-    pub fn manual_running_for(&self, s: Service) -> bool {
-        let session = self.session(s);
-        let Ok(session) = session.try_lock() else {
-            return true;
-        };
-        session.manual && session.running()
-    }
     pub fn refresh(&self, s: Service, cfg: &ServiceConfig) -> Result<Vec<Metric>> {
         let session = self.session(s);
         let mut session = session.lock().unwrap();
@@ -228,12 +218,7 @@ impl Session {
         if self.manual {
             ensure!(
                 !self.running(),
-                "{}",
-                if self.service == Service::Gemini {
-                    "Profil Gemini jest zajęty. Zamknij jego okna i wybierz Kontynuuj."
-                } else {
-                    "Okno logowania jest nadal otwarte. Dokończ logowanie, zamknij to okno i naciśnij Odśwież."
-                }
+                "Okno logowania jest nadal otwarte. Dokończ logowanie, zamknij to okno i naciśnij Odśwież."
             );
             self.manual = false;
             self.visible = false;
@@ -363,14 +348,6 @@ impl Session {
                     .and_then(|v| v.as_str().map(str::to_owned))
                     .unwrap_or_default();
                 if !allowed(self.service, &url) {
-                    if self.service == Service::Gemini
-                        && url.starts_with("https://accounts.google.com/")
-                    {
-                        if url::Url::parse(&url).is_ok_and(|u| u.path().contains("rejected")) {
-                            bail!("Google odrzuciło tę przeglądarkę. Zamknij okno profilu, wybierz inną zainstalowaną przeglądarkę w ustawieniach Gemini i zaloguj się ponownie. Nie potwierdzono połączenia.");
-                        }
-                        bail!("Sesja Google wygasła lub logowanie zostało odrzucone. Wybierz Zaloguj się ponownie; logowanie odbywa się w zwykłym oknie przeglądarki.");
-                    }
                     continue;
                 }
                 if self.service == Service::Claude {
@@ -526,28 +503,28 @@ mod tests {
         let cmd = manual_command(
             std::path::Path::new("chrome"),
             std::path::Path::new("separate-profile"),
-            Service::Gemini.url(),
+            Service::Claude.url(),
         );
         let args: Vec<_> = cmd
             .get_args()
             .map(|a| a.to_string_lossy().into_owned())
             .collect();
         assert!(args.iter().any(|a| a == "--user-data-dir=separate-profile"));
-        assert_eq!(args.last().unwrap(), Service::Gemini.url());
+        assert_eq!(args.last().unwrap(), Service::Claude.url());
         assert!(!args.iter().any(|a| a.contains("debugging")
             || a.contains("headless")
             || a.contains("automation")));
     }
     #[test]
     fn official_origin_only() {
-        assert!(allowed(Service::Gemini, "https://gemini.google.com/app"));
+        assert!(allowed(Service::Claude, "https://claude.ai/settings/usage"));
         for u in [
-            "https://gemini.google.com.evil.test/",
-            "http://gemini.google.com/",
-            "https://x@gemini.google.com/",
-            "https://gemini.google.com:444/",
+            "https://claude.ai.evil.test/",
+            "http://claude.ai/",
+            "https://x@claude.ai/",
+            "https://claude.ai:444/",
         ] {
-            assert!(!allowed(Service::Gemini, u));
+            assert!(!allowed(Service::Claude, u));
         }
     }
 }

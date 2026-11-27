@@ -1,5 +1,17 @@
 # Sprawdzenie AI Gauge Rust 0.3.0
 
+## Aktualizacja: liczniki przez CLI, Gemini usunięte (27 listopada 2026)
+
+- Gemini zostało całkowicie usunięte (kod, ustawienia, logowanie, UI). Stare
+  pliki `settings.json` z wpisami `gemini` nadal się wczytują (test migracji).
+- `ai-gauge --check` na komputerze autora: ChatGPT/Codex przez Codex CLI — OK,
+  Claude przez logowanie Claude Code — OK (sesja 5 h, tydzień, dodatkowy limit),
+  DeepSeek API — OK, OpenAI API — HTTP 403 (zapisany klucz nie jest kluczem
+  ADMIN), Anthropic API — wyłączone, nie sprawdzono.
+- `cargo test`, `cargo fmt --check`, `cargo clippy -- -D warnings`: OK.
+
+Poniższe sekcje opisują wcześniejsze sprawdzenia i mogą wspominać Gemini.
+
 ## Aktualizacja: dostępny interfejs i personalizacja (2 listopada 2026)
 
 Windows / MSVC, Slint 1.18.1. Interfejs przebudowano według podanych zasad:

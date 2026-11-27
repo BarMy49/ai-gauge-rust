@@ -12,20 +12,18 @@ pub enum Service {
     Deepseek,
     Claude,
     Anthropic,
-    Gemini,
 }
 
 impl Service {
     pub fn from_id(id: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|s| s.id() == id)
     }
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 5] = [
         Self::Chatgpt,
         Self::Openai,
         Self::Deepseek,
         Self::Claude,
         Self::Anthropic,
-        Self::Gemini,
     ];
     pub fn id(self) -> &'static str {
         match self {
@@ -34,7 +32,6 @@ impl Service {
             Self::Deepseek => "deepseek",
             Self::Claude => "claude",
             Self::Anthropic => "anthropic",
-            Self::Gemini => "gemini",
         }
     }
     pub fn name(self) -> &'static str {
@@ -44,7 +41,6 @@ impl Service {
             Self::Deepseek => "DeepSeek API",
             Self::Claude => "Claude Code / Claude",
             Self::Anthropic => "Anthropic API",
-            Self::Gemini => "Gemini",
         }
     }
     pub fn api(self) -> bool {
@@ -57,25 +53,23 @@ impl Service {
             Self::Deepseek => "https://platform.deepseek.com/",
             Self::Claude => "https://claude.ai/settings/usage",
             Self::Anthropic => "https://platform.claude.com/usage",
-            Self::Gemini => "https://gemini.google.com/app",
         }
     }
     pub fn host(self) -> &'static str {
         match self {
             Self::Chatgpt => "chatgpt.com",
             Self::Claude => "claude.ai",
-            Self::Gemini => "gemini.google.com",
             _ => "",
         }
     }
     pub fn help(self) -> &'static str {
         match self {
-        Self::Chatgpt=>"Zaloguj konto ChatGPT w osobnym profilu Edge/Chrome. Odczyt dotyczy panelu Codex na tym koncie, nie wszystkich rozmów ChatGPT. Opcjonalnie odznacz tryb przeglądarki, aby użyć oficjalnego Codex CLI.",
+        Self::Chatgpt=>"Odczyt przez oficjalny Codex CLI (zainstaluj codex i zaloguj się: codex login, albo użyj przycisku logowania). Dotyczy limitów Codex na tym koncie, nie wszystkich rozmów ChatGPT.",
         Self::Openai=>"Wymagany klucz ADMIN organizacji. Pokazuje koszt calej organizacji od poczatku miesiaca UTC. Procent jest liczony wzgledem Twojego budzetu; to nie saldo przedplaty ani RPM/TPM.",
         Self::Deepseek=>"Zwykly klucz API. Pokazuje rzeczywiste saldo USD/CNY. Kwota odniesienia sluzy do obliczenia procentu zuzycia; po doladowaniu mozesz ja zmienic.",
         Self::Claude=>"Najpewniej działa przez Claude Code: jeśli jest zalogowany na tym komputerze (claude, potem /login), limity odczytamy z jego oficjalnego logowania. Bez Claude Code zaloguj się w osobnym zwykłym oknie Chrome lub Edge, zamknij je i naciśnij Odśwież. Odczyt sesji i tygodnia z panelu Usage. Integracja korzysta z wewnetrznego interfejsu strony i moze wymagac aktualizacji.",
         Self::Anthropic=>"Wymagany klucz ADMIN. Pokazuje koszt organizacji od poczatku miesiaca UTC, takze Claude Code rozliczane tym API. Budzet jest Twoim progiem; nie odczytujemy salda przedplaty.",
-        Self::Gemini=>"Zaloguj się ręcznie w osobnym zwykłym oknie Chrome lub Edge. Zamknij okna tego profilu i wybierz Kontynuuj. Potwierdzimy połączenie po odczycie limitów. Konto musi udostępniać procentowe liczniki w panelu Gemini; samo zalogowanie nie gwarantuje ich dostępności." }
+        }
     }
 }
 
@@ -146,6 +140,27 @@ impl Default for Config {
         }
     }
 }
+/// Services that existed in older versions and were removed. Their entries
+/// are dropped from settings.json before it is parsed.
+const REMOVED_SERVICES: [&str; 1] = ["gemini"];
+pub fn drop_removed_services(v: &mut serde_json::Value) {
+    for list in ["service_order", "hidden_services"] {
+        if let Some(a) = v[list].as_array_mut() {
+            a.retain(|s| !s.as_str().is_some_and(|s| REMOVED_SERVICES.contains(&s)));
+        }
+    }
+    if let Some(m) = v["services"].as_object_mut() {
+        m.retain(|k, _| !REMOVED_SERVICES.contains(&k.as_str()));
+    }
+    if let Some(sel) = v["selected"].as_str() {
+        if REMOVED_SERVICES
+            .iter()
+            .any(|r| sel.split(':').next() == Some(r))
+        {
+            v["selected"] = serde_json::Value::String(String::new());
+        }
+    }
+}
 impl Config {
     pub fn normalize_layout(&mut self) {
         let mut seen = std::collections::HashSet::new();
@@ -188,7 +203,7 @@ impl Config {
 /// Presentation preference: show what is left instead of what is used.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Remaining {
-    /// Subscription limits (ChatGPT/Codex, Claude, Gemini).
+    /// Subscription limits (ChatGPT/Codex, Claude).
     pub limits: bool,
     /// Currency-metered APIs measured against a reference amount.
     pub api: bool,
@@ -253,11 +268,7 @@ impl Metric {
         if self.service.api() {
             r.api
         } else {
-            r.limits
-                && matches!(
-                    self.service,
-                    Service::Chatgpt | Service::Claude | Service::Gemini
-                )
+            r.limits && matches!(self.service, Service::Chatgpt | Service::Claude)
         }
     }
     pub fn display_percent(&self, show_remaining: impl Into<Remaining>) -> Option<f64> {
@@ -371,11 +382,14 @@ mod tests {
         assert!(old.hidden_services.is_empty());
         assert_eq!(old.appearance, "system");
         assert_eq!(old.text_scale, 100);
-        old.service_order = vec![Service::Gemini, Service::Gemini, Service::Claude];
+        old.service_order = vec![Service::Deepseek, Service::Deepseek, Service::Claude];
         old.hidden_services = vec![Service::Openai, Service::Openai];
         old.normalize_layout();
-        assert_eq!(&old.service_order[..2], &[Service::Gemini, Service::Claude]);
-        assert_eq!(old.service_order.len(), 6);
+        assert_eq!(
+            &old.service_order[..2],
+            &[Service::Deepseek, Service::Claude]
+        );
+        assert_eq!(old.service_order.len(), 5);
         assert_eq!(old.hidden_services, vec![Service::Openai]);
         assert_eq!(old.selected, "claude:week");
     }
@@ -396,14 +410,14 @@ mod tests {
     fn config_defaults() {
         let mut c: Config = serde_json::from_str("{}").unwrap();
         c.validate().unwrap();
-        assert_eq!(c.services.len(), 6);
+        assert_eq!(c.services.len(), 5);
         assert_eq!(c.interval, 300);
         assert!(!c.show_remaining);
         assert!(!c.show_api_remaining);
     }
     #[test]
     fn remaining_limits_are_a_presentation_preference() {
-        for service in [Service::Chatgpt, Service::Claude, Service::Gemini] {
+        for service in [Service::Chatgpt, Service::Claude] {
             for (used, remaining) in [(0., 100.), (37., 63.), (37.25, 62.75), (100., 0.)] {
                 let m = Metric::new(service, "quota", "Limit", "used", Some(used), "fixture");
                 assert_eq!(m.display_percent(true), Some(remaining));
@@ -458,6 +472,22 @@ mod tests {
         assert_eq!(sub.display_percent(api), Some(30.));
         let key = Metric::new(Service::Deepseek, "b", "Saldo", "x", Some(30.), "fixture");
         assert_eq!(key.display_percent(true), Some(30.));
+    }
+    #[test]
+    fn settings_from_versions_with_gemini_still_load() {
+        let mut v = serde_json::json!({
+            "service_order":["gemini","claude"],
+            "hidden_services":["gemini"],
+            "selected":"gemini:week",
+            "services":{"gemini":{"enabled":true},"claude":{"enabled":true}}
+        });
+        drop_removed_services(&mut v);
+        let mut c: Config = serde_json::from_value(v).unwrap();
+        c.validate().unwrap();
+        assert_eq!(c.service_order[0], Service::Claude);
+        assert!(c.hidden_services.is_empty());
+        assert_eq!(c.selected, "");
+        assert!(c.services[&Service::Claude].enabled);
     }
     #[test]
     fn bad_key_never_echoed() {

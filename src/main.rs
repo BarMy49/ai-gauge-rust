@@ -4,7 +4,6 @@ mod browser;
 mod claude_code;
 mod codex;
 mod engine;
-mod gemini_cli;
 mod icon;
 mod model;
 mod providers;
@@ -80,7 +79,6 @@ fn check(store: Arc<store::Store>) -> Result<()> {
         let cfg = &config.services[&s];
         let cli = match s {
             model::Service::Claude => claude_code::available(),
-            model::Service::Gemini => gemini_cli::available(),
             _ => false,
         };
         if !cfg.enabled && !cli {

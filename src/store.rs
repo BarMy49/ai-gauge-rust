@@ -49,7 +49,10 @@ impl Store {
     pub fn load(&self) -> Result<Config> {
         let p = self.root.join("settings.json");
         let mut c = if p.exists() {
-            serde_json::from_slice(&fs::read(p)?).context("Nie mozna odczytac settings.json")?
+            let mut v: serde_json::Value = serde_json::from_slice(&fs::read(p)?)
+                .context("Nie mozna odczytac settings.json")?;
+            crate::model::drop_removed_services(&mut v);
+            serde_json::from_value(v).context("Nie mozna odczytac settings.json")?
         } else {
             Config::default()
         };

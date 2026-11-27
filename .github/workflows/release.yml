@@ -45,25 +45,21 @@ jobs:
           path: dist/*
 
   fedora:
-    # Both architectures build inside a Fedora 43 container; aarch64 runs
-    # under QEMU emulation, so it works on standard GitHub runners.
+    # Both architectures build natively inside a Fedora 43 container:
+    # x86_64 on a standard runner, aarch64 on GitHub's arm64 runner.
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: x86_64
-            platform: linux/amd64
+            runner: ubuntu-24.04
           - arch: aarch64
-            platform: linux/arm64
-    runs-on: ubuntu-24.04
-    timeout-minutes: 180
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - if: matrix.arch == 'aarch64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-      - run: docker run --rm --platform ${{ matrix.platform }} -v "$PWD:/src" -w /src fedora:43 bash ci/fedora-build.sh
+      - run: docker run --rm -v "$PWD:/src" -w /src fedora:43 bash ci/fedora-build.sh
       - uses: actions/upload-artifact@v4
         with:
           name: fedora-${{ matrix.arch }}

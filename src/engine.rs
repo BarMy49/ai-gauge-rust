@@ -1,6 +1,4 @@
-use crate::{
-    browser::BrowserPool, claude_code, codex, gemini_cli, model::*, providers, store::Store,
-};
+use crate::{browser::BrowserPool, claude_code, codex, model::*, providers, store::Store};
 use anyhow::{ensure, Result};
 use std::{
     collections::{BTreeMap, HashSet},
@@ -14,7 +12,6 @@ use std::{
 #[derive(Clone)]
 pub struct Snapshot {
     pub busy: HashSet<Service>,
-    pub gemini_state: GeminiState,
     pub auth_message: String,
     pub auth_url: String,
     pub auth_code: String,
@@ -27,7 +24,6 @@ pub struct Snapshot {
     pub revision: u64,
 }
 struct Data {
-    gemini_state: GeminiState,
     auth_message: String,
     auth_url: String,
     auth_code: String,
@@ -53,20 +49,6 @@ struct Inner {
 }
 #[derive(Clone)]
 pub struct Engine(Arc<Inner>);
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum GeminiState {
-    Disconnected,
-    AwaitingSignIn,
-    Ready,
-    Reading,
-    Connected,
-    Error,
-}
-impl GeminiState {
-    pub fn paused(self) -> bool {
-        matches!(self, Self::AwaitingSignIn | Self::Ready | Self::Error)
-    }
-}
 impl Engine {
     #[cfg(windows)]
     pub fn data_dir(&self) -> std::path::PathBuf {
@@ -85,7 +67,6 @@ impl Engine {
             config.selected = "chatgpt:demo-5h".into();
         }
         let mut data = Data {
-            gemini_state: GeminiState::Disconnected,
             auth_message: String::new(),
             auth_url: String::new(),
             auth_code: String::new(),
@@ -165,14 +146,6 @@ impl Engine {
                     16.,
                     "Budzet wlasny 20 USD",
                 ),
-                (
-                    Service::Gemini,
-                    "week",
-                    "Tydzien",
-                    "56% wykorzystano",
-                    56.,
-                    "Dane demonstracyjne",
-                ),
             ] {
                 let mut m = Metric::new(s, id, label, value, Some(p), "DEMO");
                 m.reset = reset.into();
@@ -194,7 +167,6 @@ impl Engine {
         let d = self.0.data.lock().unwrap();
         Snapshot {
             busy: d.busy.clone(),
-            gemini_state: d.gemini_state,
             auth_message: d.auth_message.clone(),
             auth_url: d.auth_url.clone(),
             auth_code: d.auth_code.clone(),
@@ -233,12 +205,6 @@ impl Engine {
                     *status = "Pobieranie danych…".into();
                 }
                 d.busy = Service::ALL.into_iter().collect();
-            }
-            "gemini" => {
-                d.gemini_state = GeminiState::AwaitingSignIn;
-                d.metrics.retain(|_, m| m.service != Service::Gemini);
-                d.status
-                    .insert(Service::Gemini, "Oczekiwanie na ręczne logowanie".into());
             }
             _ => {}
         }
@@ -308,34 +274,6 @@ impl Engine {
             },
             "Zapisano wygląd aplikacji".into(),
         );
-    }
-    pub fn continue_gemini(&self) {
-        {
-            let mut d = self.0.data.lock().unwrap();
-            if d.busy.contains(&Service::Gemini) {
-                return;
-            }
-            if self.0.browser.manual_running() {
-                d.message = "Zamknij wszystkie okna osobnego profilu Gemini, a następnie wybierz Kontynuuj.".into();
-                d.revision += 1;
-                return;
-            }
-            d.gemini_state = GeminiState::Disconnected;
-        }
-        self.refresh(Service::Gemini);
-    }
-    pub fn cancel_gemini(&self) {
-        let mut d = self.0.data.lock().unwrap();
-        if d.busy.contains(&Service::Gemini) {
-            return;
-        }
-        d.gemini_state = GeminiState::Disconnected;
-        d.config.services.get_mut(&Service::Gemini).unwrap().enabled = false;
-        d.message = "Anulowano połączenie. Możesz zamknąć osobne okno Gemini. Sesja w profilu została zachowana.".into();
-        if !self.0.demo {
-            let _ = self.0.store.save(&d.config);
-        }
-        d.revision += 1;
     }
     pub fn pin(&self, id: &str) {
         let mut d = self.0.data.lock().unwrap();
@@ -425,21 +363,11 @@ impl Engine {
             return;
         }
         let due = {
-            let mut d = self.0.data.lock().unwrap();
-            if d.gemini_state == GeminiState::AwaitingSignIn
-                && !d.busy.contains(&Service::Gemini)
-                && !self.0.browser.manual_running()
-            {
-                d.gemini_state = GeminiState::Ready;
-                d.revision += 1;
-            }
+            let d = self.0.data.lock().unwrap();
             Service::ALL
                 .into_iter()
                 .filter(|s| {
                     d.config.services[s].enabled
-                        && !(*s == Service::Gemini
-                            && d.gemini_state.paused()
-                            && !gemini_cli::available())
                         && !d.busy.contains(s)
                         && d.last
                             .get(s)
@@ -506,19 +434,6 @@ impl Engine {
                 d.revision += 1;
                 return;
             }
-            if s == Service::Gemini {
-                // The pause only guards the browser sign-in flow.
-                if !login && !logout && d.gemini_state.paused() && !gemini_cli::available() {
-                    return;
-                }
-                d.gemini_state = if login {
-                    GeminiState::AwaitingSignIn
-                } else if logout {
-                    GeminiState::Disconnected
-                } else {
-                    GeminiState::Reading
-                };
-            }
             if s == Service::Chatgpt && login {
                 d.auth_busy = true;
                 d.account_label.clear();
@@ -551,10 +466,7 @@ impl Engine {
         }
         // Claude Code's sign-in avoids the Cloudflare check claude.ai shows to
         // background browser reads, so it is preferred whenever it exists.
-        // Gemini CLI's sign-in likewise replaces the browser profile for Gemini.
         let via_claude_code = s == Service::Claude && claude_code::available();
-        let via_gemini_cli = s == Service::Gemini && gemini_cli::available();
-        let via_cli = via_claude_code || via_gemini_cli;
         let this = self.clone();
         std::thread::spawn(move || {
             let progress = |p| this.auth_progress(p);
@@ -583,8 +495,6 @@ impl Engine {
                         m.source = "Claude Code (oficjalne logowanie konta Claude)".into();
                     }
                     Ok(rows)
-                } else if via_gemini_cli {
-                    gemini_cli::read()
                 } else if login {
                     this.0.browser.login(s, &cfg)?;
                     Ok(vec![])
@@ -616,24 +526,13 @@ impl Engine {
             }
             match result {
                 Ok(metrics) => {
-                    if s == Service::Gemini {
-                        d.gemini_state = if logout {
-                            GeminiState::Disconnected
-                        } else if login && !via_cli {
-                            GeminiState::AwaitingSignIn
-                        } else {
-                            GeminiState::Connected
-                        };
-                    }
                     d.metrics.retain(|_, m| m.service != s);
                     for m in metrics {
                         d.metrics.insert(m.identity(), m);
                     }
                     let text = if logout {
                         "Wyczyszczono sesje lokalna"
-                    } else if login && s == Service::Gemini && !via_cli {
-                        "Zaloguj się ręcznie, zamknij osobne okno Gemini i wybierz Kontynuuj."
-                    } else if login && !(s == Service::Chatgpt) && !via_cli {
+                    } else if login && !(s == Service::Chatgpt) && !via_claude_code {
                         "Zaloguj się w otwartym oknie przeglądarki, zamknij je i naciśnij Odśwież"
                     } else {
                         "Aktualne"
@@ -646,9 +545,6 @@ impl Engine {
                     }
                 }
                 Err(e) => {
-                    if s == Service::Gemini {
-                        d.gemini_state = GeminiState::Error;
-                    }
                     let text = e.to_string();
                     d.status.insert(s, text.clone());
                     for m in d.metrics.values_mut().filter(|m| m.service == s) {
@@ -699,8 +595,6 @@ impl Engine {
             providers::codex(&v)
         } else if s == Service::Claude && claude_code::available() {
             providers::claude(&claude_code::usage()?)
-        } else if s == Service::Gemini && gemini_cli::available() {
-            gemini_cli::read()
         } else {
             self.0.browser.refresh(s, &cfg)
         }
@@ -770,55 +664,32 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let store = Arc::new(Store::new(Some(dir.path().to_path_buf())).unwrap());
         let mut cfg = Config {
-            selected: "gemini:week".into(),
+            selected: "claude:week".into(),
             ..Default::default()
         };
-        cfg.services.get_mut(&Service::Gemini).unwrap().enabled = true;
+        cfg.services.get_mut(&Service::Claude).unwrap().enabled = true;
         let engine = Engine::new(store.clone(), cfg, false);
-        engine.reorder(Service::Gemini, 0);
-        engine.visibility(Service::Gemini, false);
+        engine.reorder(Service::Claude, 0);
+        engine.visibility(Service::Claude, false);
         engine.appearance("dark".into(), 200);
         let saved = store.load().unwrap();
-        assert_eq!(saved.service_order[0], Service::Gemini);
-        assert!(saved.hidden_services.contains(&Service::Gemini));
-        assert!(saved.services[&Service::Gemini].enabled);
-        assert_eq!(saved.selected, "gemini:week");
+        assert_eq!(saved.service_order[0], Service::Claude);
+        assert!(saved.hidden_services.contains(&Service::Claude));
+        assert!(saved.services[&Service::Claude].enabled);
+        assert_eq!(saved.selected, "claude:week");
         assert_eq!((saved.appearance.as_str(), saved.text_scale), ("dark", 200));
         engine.reset_layout();
         let saved = store.load().unwrap();
         assert_eq!(saved.service_order, Service::ALL);
         assert!(saved.hidden_services.is_empty());
-        assert_eq!(saved.selected, "gemini:week");
-    }
-    #[test]
-    fn pending_gemini_auth_and_errors_block_background_reads() {
-        let dir = tempfile::tempdir().unwrap();
-        let store = Arc::new(Store::new(Some(dir.path().to_path_buf())).unwrap());
-        let engine = Engine::new(store, Config::default(), false);
-        for state in [
-            GeminiState::AwaitingSignIn,
-            GeminiState::Ready,
-            GeminiState::Error,
-        ] {
-            {
-                let mut d = engine.0.data.lock().unwrap();
-                d.gemini_state = state;
-                d.config.services.get_mut(&Service::Gemini).unwrap().enabled = true;
-            }
-            engine.refresh(Service::Gemini);
-            engine.tick();
-            assert!(!engine.snapshot().busy.contains(&Service::Gemini));
-        }
-        engine.cancel_gemini();
-        assert_eq!(engine.snapshot().gemini_state, GeminiState::Disconnected);
-        assert!(!engine.snapshot().config.services[&Service::Gemini].enabled);
+        assert_eq!(saved.selected, "claude:week");
     }
     #[test]
     fn demo_pin_does_not_write_or_contact_accounts() {
         let dir = tempfile::tempdir().unwrap();
         let store = Arc::new(Store::new(Some(dir.path().to_path_buf())).unwrap());
         let engine = Engine::new(store, Config::default(), true);
-        assert_eq!(engine.snapshot().metrics.len(), 8);
+        assert_eq!(engine.snapshot().metrics.len(), 7);
         engine.pin("claude:seven_day");
         engine.refresh_all();
         engine.general(300, false, true, false);

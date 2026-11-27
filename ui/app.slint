@@ -147,7 +147,6 @@ export component MainWindow inherits Window {
     in property<string> auth-code;
     in property<string> auth-url;
     in property<bool> auth-busy;
-    in property<int> gemini-state;
     in property<bool> service-busy;
     in-out property<bool> edit-enabled;
     in-out property<string> edit-key;
@@ -166,8 +165,6 @@ export component MainWindow inherits Window {
     callback move-requested(string,int);
     callback reset-layout-requested();
     callback appearance-requested();
-    callback continue-gemini-requested();
-    callback cancel-gemini-requested();
     callback save-requested(); callback login-requested(bool); callback logout-requested(); callback delete-key-requested();
     callback refresh-requested(); callback pin-requested(string); callback general-save-requested(); callback hide-requested(); callback quit-requested();
     callback open-auth-requested(); callback cancel-auth-requested();
@@ -230,15 +227,6 @@ export component MainWindow inherits Window {
                         }
                         if root.account-label!="":Body { text:root.account-label; }
                         Body { text:root.service-status; accessible-live-region:polite; }
-                        if root.selected-service=="gemini" && (root.gemini-state==1 || root.gemini-state==2 || root.gemini-state==5):VerticalLayout { spacing:12px;
-                            Heading { text:root.gemini-state==5?"Połączenie wymaga uwagi":"Dokończ połączenie z Gemini"; }
-                            Body { text:"Zaloguj się ręcznie w otwartym, osobnym oknie przeglądarki. Następnie zamknij wszystkie okna tego profilu i wybierz Kontynuuj. Samo otwarcie przeglądarki nie potwierdza logowania."; }
-                            FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-                                Action { text:"Kontynuuj"; primary:true; enabled:!root.service-busy; clicked=>{root.continue-gemini-requested();} }
-                                Action { text:"Anuluj połączenie"; enabled:!root.service-busy; clicked=>{root.cancel-gemini-requested();} }
-                                Action { text:"Zaloguj się ponownie"; enabled:!root.service-busy; clicked=>{root.login-requested(false);} }
-                            }
-                        }
                         if !root.settings-open:VerticalLayout { spacing:16px;
                             for quota in root.quotas:QuotaRow { item:quota; pin=>{root.pin-requested(quota.id);} }
                             if root.quotas.length==0:VerticalLayout { spacing:12px;
@@ -251,10 +239,10 @@ export component MainWindow inherits Window {
                             Heading { text:"Połączenie z usługą"; }
                             Body { text:root.service-help; }
                             LabeledCheck { text:"Monitoruj tę usługę"; checked<=>root.edit-enabled; }
-                            if root.selected-service=="gemini":VerticalLayout { spacing:8px;
+                            if root.selected-service=="claude":VerticalLayout { spacing:8px;
                                 Body { text:"Przeglądarka do logowania"; }
-                                ComboBox { model:["Automatycznie","Google Chrome","Microsoft Edge"]; current-index<=>root.edit-browser; enabled:!root.service-busy && root.gemini-state!=1 && root.gemini-state!=2; }
-                                Hint { text:"Logowanie odbywa się w osobnym zwykłym profilu. Aplikacja nie kopiuje danych z Twojej codziennej przeglądarki."; }
+                                ComboBox { model:["Automatycznie","Google Chrome","Microsoft Edge"]; current-index<=>root.edit-browser; enabled:!root.service-busy; }
+                                Hint { text:"Używana tylko bez Claude Code. Logowanie odbywa się w osobnym zwykłym profilu. Aplikacja nie kopiuje danych z Twojej codziennej przeglądarki."; }
                             }
                             if root.api-service:VerticalLayout { spacing:12px;
                                 Body { text:"Klucz API"; }
@@ -291,7 +279,7 @@ export component MainWindow inherits Window {
                         Rule {}
                         Heading { text:"Limity i praca w tle"; }
                         LabeledCheck { text:"Pokaż pozostały limit zamiast wykorzystanego"; checked<=>root.edit-show-remaining; }
-                        Hint { text:"Dotyczy ChatGPT/Codex, Claude i Gemini. Procenty własnych budżetów API i salda mają osobną opcję poniżej."; }
+                        Hint { text:"Dotyczy ChatGPT/Codex i Claude. Procenty własnych budżetów API i salda mają osobną opcję poniżej."; }
                         LabeledCheck { text:"Pokaż, ile procent kwoty odniesienia pozostało w API rozliczanych w walucie"; checked<=>root.edit-show-api-remaining; }
                         Hint { text:"Dotyczy salda DeepSeek oraz budżetów OpenAI API i Anthropic API. Kwota w walucie się nie zmienia, zmienia się tylko procent."; }
                         Body { text:"Odświeżanie co (sekundy, 60–3600)"; }
