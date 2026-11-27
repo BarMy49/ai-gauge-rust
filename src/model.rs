@@ -73,7 +73,7 @@ impl Service {
         Self::Chatgpt=>"Zaloguj konto ChatGPT w osobnym profilu Edge/Chrome. Odczyt dotyczy panelu Codex na tym koncie, nie wszystkich rozmów ChatGPT. Opcjonalnie odznacz tryb przeglądarki, aby użyć oficjalnego Codex CLI.",
         Self::Openai=>"Wymagany klucz ADMIN organizacji. Pokazuje koszt calej organizacji od poczatku miesiaca UTC. Procent jest liczony wzgledem Twojego budzetu; to nie saldo przedplaty ani RPM/TPM.",
         Self::Deepseek=>"Zwykly klucz API. Pokazuje rzeczywiste saldo USD/CNY. Kwota odniesienia sluzy do obliczenia procentu zuzycia; po doladowaniu mozesz ja zmienic.",
-        Self::Claude=>"Logowanie Claude w osobnym profilu Chrome/Edge. Odczyt sesji i tygodnia z panelu Usage. Integracja korzysta z wewnetrznego interfejsu strony i moze wymagac aktualizacji.",
+        Self::Claude=>"Zaloguj się w osobnym zwykłym oknie Chrome lub Edge (działa też Kontynuuj z Google), zamknij je i naciśnij Odśwież. Odczyt sesji i tygodnia z panelu Usage. Integracja korzysta z wewnetrznego interfejsu strony i moze wymagac aktualizacji.",
         Self::Anthropic=>"Wymagany klucz ADMIN. Pokazuje koszt organizacji od poczatku miesiaca UTC, takze Claude Code rozliczane tym API. Budzet jest Twoim progiem; nie odczytujemy salda przedplaty.",
         Self::Gemini=>"Zaloguj się ręcznie w osobnym zwykłym oknie Chrome lub Edge. Zamknij okna tego profilu i wybierz Kontynuuj. Potwierdzimy połączenie po odczycie limitów. Konto musi udostępniać procentowe liczniki w panelu Gemini; samo zalogowanie nie gwarantuje ich dostępności." }
     }
@@ -113,6 +113,9 @@ pub struct Config {
     pub interval: u64,
     pub hidden: bool,
     pub show_remaining: bool,
+    /// Show the part of the reference amount that is left for metered APIs
+    /// billed in currency (DeepSeek balance, OpenAI/Anthropic budget).
+    pub show_api_remaining: bool,
     pub selected: String,
     pub services: BTreeMap<Service, ServiceConfig>,
 }
@@ -126,6 +129,7 @@ impl Default for Config {
             interval: 300,
             hidden: false,
             show_remaining: false,
+            show_api_remaining: false,
             selected: String::new(),
             services: Service::ALL
                 .into_iter()
@@ -181,6 +185,28 @@ impl Config {
     }
 }
 
+/// Presentation preference: show what is left instead of what is used.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub struct Remaining {
+    /// Subscription limits (ChatGPT/Codex, Claude, Gemini).
+    pub limits: bool,
+    /// Currency-metered APIs measured against a reference amount.
+    pub api: bool,
+}
+impl From<bool> for Remaining {
+    fn from(limits: bool) -> Self {
+        Self { limits, api: false }
+    }
+}
+impl Config {
+    pub fn remaining(&self) -> Remaining {
+        Remaining {
+            limits: self.show_remaining,
+            api: self.show_api_remaining,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Metric {
     pub service: Service,
@@ -222,28 +248,35 @@ impl Metric {
             && Utc::now().signed_duration_since(self.fetched).num_seconds()
                 <= (interval * 2).max(90) as i64
     }
-    fn remaining(&self, show_remaining: bool) -> bool {
-        show_remaining
-            && matches!(
-                self.service,
-                Service::Chatgpt | Service::Claude | Service::Gemini
-            )
+    pub fn shows_remaining(&self, show_remaining: impl Into<Remaining>) -> bool {
+        let r = show_remaining.into();
+        if self.service.api() {
+            r.api
+        } else {
+            r.limits
+                && matches!(
+                    self.service,
+                    Service::Chatgpt | Service::Claude | Service::Gemini
+                )
+        }
     }
-    pub fn display_percent(&self, show_remaining: bool) -> Option<f64> {
+    pub fn display_percent(&self, show_remaining: impl Into<Remaining>) -> Option<f64> {
+        let show_remaining = show_remaining.into();
         self.percent.map(|p| {
-            if self.remaining(show_remaining) {
+            if self.shows_remaining(show_remaining) {
                 (100. - p).clamp(0., 100.)
             } else {
                 p
             }
         })
     }
-    pub fn percentage_label(&self, show_remaining: bool) -> String {
+    pub fn percentage_label(&self, show_remaining: impl Into<Remaining>) -> String {
+        let show_remaining = show_remaining.into();
         self.display_percent(show_remaining)
             .map(|p| {
                 format!(
                     "{p:.0}% {}",
-                    if self.remaining(show_remaining) {
+                    if self.shows_remaining(show_remaining) {
                         "pozostało"
                     } else {
                         "wykorzystano"
@@ -252,19 +285,20 @@ impl Metric {
             })
             .unwrap_or_default()
     }
-    pub fn display_value(&self, show_remaining: bool) -> String {
+    pub fn display_value(&self, show_remaining: impl Into<Remaining>) -> String {
+        let show_remaining = show_remaining.into();
         if !self.service.api() && self.percent.is_some() {
             self.percentage_label(show_remaining)
         } else {
             self.value.clone()
         }
     }
-    pub fn line(&self, interval: u64, show_remaining: bool) -> String {
+    pub fn line(&self, interval: u64, show_remaining: impl Into<Remaining>) -> String {
+        let show_remaining = show_remaining.into();
         let value = self.display_value(show_remaining);
-        let p = self
-            .display_percent(show_remaining)
-            .filter(|_| !value.contains('%'))
-            .map(|p| format!(" ({p:.0}%)"))
+        let p = Some(self.percentage_label(show_remaining))
+            .filter(|p| !p.is_empty() && !value.contains('%'))
+            .map(|p| format!(" ({p})"))
             .unwrap_or_default();
         format!(
             "{} | {}{}{}",
@@ -365,6 +399,7 @@ mod tests {
         assert_eq!(c.services.len(), 6);
         assert_eq!(c.interval, 300);
         assert!(!c.show_remaining);
+        assert!(!c.show_api_remaining);
     }
     #[test]
     fn remaining_limits_are_a_presentation_preference() {
@@ -400,6 +435,29 @@ mod tests {
             assert_eq!(m.percentage_label(true), m.percentage_label(false));
             assert_eq!(m.line(300, true), m.line(300, false));
         }
+    }
+    #[test]
+    fn api_remaining_shows_what_is_left_of_the_reference_amount() {
+        let api = Remaining {
+            limits: false,
+            api: true,
+        };
+        for service in [Service::Openai, Service::Anthropic, Service::Deepseek] {
+            for (used, left) in [(0., 100.), (30., 70.), (100., 0.), (125., 0.)] {
+                let m = Metric::new(service, "b", "Saldo", "7.00 USD", Some(used), "fixture");
+                assert_eq!(m.display_percent(api), Some(left));
+                assert_eq!(m.percentage_label(api), format!("{left:.0}% pozostało"));
+                assert_eq!(m.display_value(api), "7.00 USD");
+                assert!(m
+                    .line(300, api)
+                    .contains(&format!("({left:.0}% pozostało)")));
+            }
+        }
+        // The two preferences are independent.
+        let sub = Metric::new(Service::Claude, "w", "Tydzien", "x", Some(30.), "fixture");
+        assert_eq!(sub.display_percent(api), Some(30.));
+        let key = Metric::new(Service::Deepseek, "b", "Saldo", "x", Some(30.), "fixture");
+        assert_eq!(key.display_percent(true), Some(30.));
     }
     #[test]
     fn bad_key_never_echoed() {

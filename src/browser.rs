@@ -59,15 +59,17 @@ impl BrowserPool {
     pub fn login(&self, s: Service, cfg: &ServiceConfig) -> Result<()> {
         let session = self.session(s);
         let mut session = session.lock().unwrap();
-        if s == Service::Gemini {
-            session.begin_manual(cfg)?;
-        } else {
-            session.ensure(true)?;
-        }
+        // Sign-in always happens in an ordinary browser window. A window started
+        // with a remote-debugging port reports navigator.webdriver=true, and Google
+        // (also behind "Continue with Google" on claude.ai) refuses such browsers.
+        session.begin_manual(cfg)?;
         Ok(())
     }
     pub fn manual_running(&self) -> bool {
-        let session = self.session(Service::Gemini);
+        self.manual_running_for(Service::Gemini)
+    }
+    pub fn manual_running_for(&self, s: Service) -> bool {
+        let session = self.session(s);
         let Ok(session) = session.try_lock() else {
             return true;
         };
@@ -106,6 +108,17 @@ impl BrowserPool {
     }
 }
 fn browser_exe(choice: &str) -> Result<PathBuf> {
+    // A browser picked in settings that is not installed (for example Edge
+    // removed from Windows) must not make sign-in impossible.
+    find_browser(choice).or_else(|e| {
+        if choice == "auto" {
+            Err(e)
+        } else {
+            find_browser("auto")
+        }
+    })
+}
+fn find_browser(choice: &str) -> Result<PathBuf> {
     #[cfg(windows)]
     for var in ["PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"] {
         if let Some(root) = std::env::var_os(var) {
@@ -159,7 +172,8 @@ impl Session {
     fn begin_manual(&mut self, cfg: &ServiceConfig) -> Result<()> {
         ensure!(
             !(self.manual && self.running()),
-            "Osobne okno Gemini jest już otwarte. Dokończ logowanie i zamknij je."
+            "Osobne okno logowania {} jest już otwarte. Dokończ logowanie i zamknij je.",
+            self.service.name()
         );
         self.kill();
         let exe = browser_exe(&cfg.browser)?;
@@ -174,7 +188,7 @@ impl Session {
         *self.process.lock().unwrap() = Some(
             command
                 .spawn()
-                .map_err(|_| anyhow!("Nie można otworzyć przeglądarki do logowania Gemini"))?,
+                .map_err(|_| anyhow!("Nie można otworzyć przeglądarki do logowania"))?,
         );
         self.manual = true;
         self.visible = true;
@@ -214,7 +228,12 @@ impl Session {
         if self.manual {
             ensure!(
                 !self.running(),
-                "Profil Gemini jest zajęty. Zamknij jego okna i wybierz Kontynuuj."
+                "{}",
+                if self.service == Service::Gemini {
+                    "Profil Gemini jest zajęty. Zamknij jego okna i wybierz Kontynuuj."
+                } else {
+                    "Okno logowania jest nadal otwarte. Dokończ logowanie, zamknij to okno i naciśnij Odśwież."
+                }
             );
             self.manual = false;
             self.visible = false;
@@ -318,7 +337,7 @@ impl Session {
         self.local(&format!("/json/new?{encoded}"), true)
     }
     fn read(&mut self, cfg: &ServiceConfig) -> Result<Vec<Metric>> {
-        if self.service == Service::Gemini && self.browser.is_none() {
+        if self.browser.is_none() {
             self.browser = Some(browser_exe(&cfg.browser)?);
         }
         self.ensure(false)?;
@@ -357,9 +376,12 @@ impl Session {
                 if self.service == Service::Claude {
                     let org = serde_json::to_string(&cfg.organization)?;
                     let js = format!(
-                        r#"(async()=>{{const r=await fetch('/api/organizations',{{credentials:'same-origin'}});if(!r.ok)return {{error:'login'}};const orgs=await r.json();if(!Array.isArray(orgs))return {{error:'format'}};const wanted={org};const o=wanted?orgs.find(o=>o.uuid===wanted):(orgs.length===1?orgs[0]:null);if(!o)return {{error:'organization'}};const u=await fetch('/api/organizations/'+encodeURIComponent(o.uuid)+'/usage',{{credentials:'same-origin'}});return u.ok?await u.json():{{error:'usage'}};}})()"#
+                        r#"(async()=>{{const r=await fetch('/api/organizations',{{credentials:'same-origin'}});if(document.querySelector('script[src*="/challenge-platform/"][src*="chl_page"]'))return {{error:'challenge'}};if(!r.ok)return {{error:'login'}};const orgs=await r.json();if(!Array.isArray(orgs))return {{error:'format'}};const wanted={org};const o=wanted?orgs.find(o=>o.uuid===wanted):(orgs.length===1?orgs[0]:null);if(!o)return {{error:'organization'}};const u=await fetch('/api/organizations/'+encodeURIComponent(o.uuid)+'/usage',{{credentials:'same-origin'}});return u.ok?await u.json():{{error:'usage'}};}})()"#
                     );
                     let v = c.eval(&js)?;
+                    if v["error"] == "challenge" && attempt >= 5 {
+                        bail!("claude.ai zatrzymał odczyt w tle weryfikacją Cloudflare. Logowanie jest zachowane, ale ten sposób odczytu jest blokowany.")
+                    }
                     if v["error"] == "organization" {
                         bail!("Wybierz organizacje Claude: wpisz jej UUID w ustawieniach (konto ma kilka organizacji)")
                     }

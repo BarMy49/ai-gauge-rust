@@ -65,7 +65,7 @@ impl ksni::Tray for LinuxTray {
                     CheckmarkItem {
                         label: format!(
                             "{}{}",
-                            m.line(snap.config.interval, snap.config.show_remaining),
+                            m.line(snap.config.interval, snap.config.remaining()),
                             if m.reset.is_empty() {
                                 String::new()
                             } else {

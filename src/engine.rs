@@ -382,11 +382,18 @@ impl Engine {
             }
         });
     }
-    pub fn general(&self, interval: u64, hidden: bool, show_remaining: bool) {
+    pub fn general(
+        &self,
+        interval: u64,
+        hidden: bool,
+        show_remaining: bool,
+        show_api_remaining: bool,
+    ) {
         let mut d = self.0.data.lock().unwrap();
         d.config.interval = interval.clamp(60, 3600);
         d.config.hidden = hidden;
         d.config.show_remaining = show_remaining;
+        d.config.show_api_remaining = show_api_remaining;
         d.revision += 1;
         d.message = if self.0.demo || self.0.store.save(&d.config).is_ok() {
             "Zapisano opcje aplikacji".into()
@@ -608,7 +615,7 @@ impl Engine {
                     } else if login && s == Service::Gemini {
                         "Zaloguj się ręcznie, zamknij osobne okno Gemini i wybierz Kontynuuj."
                     } else if login && !(s == Service::Chatgpt) {
-                        "Zaloguj sie w otwartym profilu, otworz limity i nacisnij Odswiez"
+                        "Zaloguj się w otwartym oknie przeglądarki, zamknij je i naciśnij Odśwież"
                     } else {
                         "Aktualne"
                     };
@@ -695,13 +702,13 @@ pub fn selected(s: &Snapshot) -> Option<&Metric> {
 pub fn tray_percent(s: &Snapshot) -> Option<f64> {
     selected(s)
         .filter(|m| s.config.services[&m.service].enabled && m.current(s.config.interval))
-        .and_then(|m| m.display_percent(s.config.show_remaining))
+        .and_then(|m| m.display_percent(s.config.remaining()))
 }
 pub fn tooltip(s: &Snapshot) -> String {
     match selected(s) {
         Some(m) => format!(
             "{}: {} / {}{}",
-            m.display_value(s.config.show_remaining),
+            m.display_value(s.config.remaining()),
             m.service.name(),
             m.label,
             if m.current(s.config.interval) {
@@ -773,7 +780,7 @@ mod tests {
         assert_eq!(engine.snapshot().metrics.len(), 8);
         engine.pin("claude:seven_day");
         engine.refresh_all();
-        engine.general(300, false, true);
+        engine.general(300, false, true, false);
         assert_eq!(engine.snapshot().config.selected, "claude:seven_day");
         assert_eq!(tray_percent(&engine.snapshot()), Some(19.));
         assert!(!dir.path().join("settings.json").exists());
@@ -784,13 +791,14 @@ mod tests {
         let store = Arc::new(Store::new(Some(dir.path().to_path_buf())).unwrap());
         let engine = Engine::new(store.clone(), Config::default(), false);
         let revision = engine.snapshot().revision;
-        engine.general(300, false, true);
+        engine.general(300, false, true, false);
         assert!(engine.snapshot().revision > revision);
         assert!(store.load().unwrap().show_remaining);
         let restarted = Engine::new(store.clone(), store.load().unwrap(), false);
         assert!(restarted.snapshot().config.show_remaining);
-        restarted.general(300, false, false);
+        restarted.general(300, false, false, true);
         assert!(!store.load().unwrap().show_remaining);
+        assert!(store.load().unwrap().show_api_remaining);
     }
     #[test]
     fn tray_and_tooltip_agree_without_treating_unknown_as_remaining() {

@@ -91,7 +91,7 @@ fn render(app: &MainWindow, s: &Snapshot) {
                 });
             let p = m
                 .filter(|m| m.current(s.config.interval))
-                .and_then(|m| m.display_percent(s.config.show_remaining));
+                .and_then(|m| m.display_percent(s.config.remaining()));
             ServiceTile {
                 id: service.id().into(),
                 position: i as i32,
@@ -101,7 +101,7 @@ fn render(app: &MainWindow, s: &Snapshot) {
                 value: m
                     .map(|m| {
                         if !service.api() {
-                            m.display_percent(s.config.show_remaining)
+                            m.display_percent(s.config.remaining())
                                 .map(|p| format!("{p:.0}%"))
                                 .unwrap_or_else(|| m.value.clone())
                         } else {
@@ -199,11 +199,11 @@ fn render(app: &MainWindow, s: &Snapshot) {
             .map(|m| QuotaItem {
                 id: m.identity().into(),
                 title: m.label.clone().into(),
-                value: m.display_value(s.config.show_remaining).into(),
-                percentage: m.percentage_label(s.config.show_remaining).into(),
+                value: m.display_value(s.config.remaining()).into(),
+                percentage: m.percentage_label(s.config.remaining()).into(),
                 reset: m.reset.clone().into(),
                 source: m.error.as_deref().unwrap_or(&m.source).into(),
-                progress: (m.display_percent(s.config.show_remaining).unwrap_or(0.) / 100.) as f32,
+                progress: (m.display_percent(s.config.remaining()).unwrap_or(0.) / 100.) as f32,
                 known: m.percent.is_some(),
                 current: m.current(s.config.interval),
                 pinned: m.identity() == s.config.selected,
@@ -227,6 +227,7 @@ pub fn run(engine: Engine, hidden: bool) -> Result<()> {
     app.set_interval_text(s.config.interval.to_string().into());
     app.set_edit_hidden(s.config.hidden);
     app.set_edit_show_remaining(s.config.show_remaining);
+    app.set_edit_show_api_remaining(s.config.show_api_remaining);
     render(&app, &s);
     let e = engine.clone();
     let w = app.as_weak();
@@ -357,7 +358,12 @@ pub fn run(engine: Engine, hidden: bool) -> Result<()> {
     app.on_general_save_requested(move || {
         if let Some(a) = w.upgrade() {
             match a.get_interval_text().parse() {
-                Ok(n) => e.general(n, a.get_edit_hidden(), a.get_edit_show_remaining()),
+                Ok(n) => e.general(
+                    n,
+                    a.get_edit_hidden(),
+                    a.get_edit_show_remaining(),
+                    a.get_edit_show_api_remaining(),
+                ),
                 Err(_) => e.message("Wpisz poprawną liczbę sekund (60–3600)"),
             }
         }

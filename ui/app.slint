@@ -159,6 +159,7 @@ export component MainWindow inherits Window {
     in-out property<string> interval-text:"300";
     in-out property<bool> edit-hidden;
     in-out property<bool> edit-show-remaining;
+    in-out property<bool> edit-show-api-remaining;
     callback service-changed(string);
     callback navigation-changed(int);
     callback visibility-requested(string,bool);
@@ -290,7 +291,9 @@ export component MainWindow inherits Window {
                         Rule {}
                         Heading { text:"Limity i praca w tle"; }
                         LabeledCheck { text:"Pokaż pozostały limit zamiast wykorzystanego"; checked<=>root.edit-show-remaining; }
-                        Hint { text:"Dotyczy ChatGPT/Codex, Claude i Gemini. Procenty własnych budżetów API i salda zachowują swoje znaczenie."; }
+                        Hint { text:"Dotyczy ChatGPT/Codex, Claude i Gemini. Procenty własnych budżetów API i salda mają osobną opcję poniżej."; }
+                        LabeledCheck { text:"Pokaż, ile procent kwoty odniesienia pozostało w API rozliczanych w walucie"; checked<=>root.edit-show-api-remaining; }
+                        Hint { text:"Dotyczy salda DeepSeek oraz budżetów OpenAI API i Anthropic API. Kwota w walucie się nie zmienia, zmienia się tylko procent."; }
                         Body { text:"Odświeżanie co (sekundy, 60–3600)"; }
                         LineEdit { text<=>root.interval-text; }
                         LabeledCheck { text:"Uruchamiaj aplikację schowaną do tray"; checked<=>root.edit-hidden; }
