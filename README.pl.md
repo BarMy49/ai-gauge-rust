@@ -41,7 +41,9 @@ zaznacz **Pokaż pozostały limit zamiast
 wykorzystanego** i kliknij **Zapisz opcje aplikacji**. Wybór jest zapamiętywany.
 Zmiana obejmuje ikonę, podpowiedź, menu, przegląd, karty limitów i paski postępu
 dla ChatGPT/Codex, Claude i Gemini: np. 37% wykorzystania staje się 63% pozostałego
-limitu. Procenty własnych budżetów API, salda i kredyty pozostają bez zmian.
+limitu. Osobna opcja **Pokaż, ile procent kwoty odniesienia pozostało w API
+rozliczanych w walucie** robi to samo dla salda DeepSeek oraz budżetów OpenAI API
+i Anthropic API; kwota w walucie się nie zmienia.
 Menu grupuje wszystkie
 odczytane liczniki według usług; zawiera także środki, daty resetu, odświeżanie,
 pokazanie okna i zamknięcie. `?` oznacza brak procentu, nieaktualne dane lub błąd,
@@ -88,7 +90,9 @@ Dla Claude i Gemini aplikacja otwiera zainstalowany Edge, Chrome lub Chromium z 
 danej usługi**. Na Windows Edge jest wykrywany automatycznie. Nie przejmuje
 codziennego profilu przeglądarki, nie importuje jego cookies i nie odczytuje haseł.
 W otwartym oknie zaloguj się na stronie dostawcy. Nie trzeba logować do synchronizacji
-samej przeglądarki. Dla Claude otwórz panel limitów i naciśnij Odśwież w AI Gauge.
+samej przeglądarki. Okno logowania jest zwykłym oknem bez automatyzacji, więc działa
+też **Kontynuuj z Google**. Dla Claude zamknij okno po zalogowaniu i naciśnij Odśwież.
+Jeśli wybrana przeglądarka nie jest zainstalowana, używana jest dowolna zainstalowana.
 Nie ma ręcznego wybierania elementów strony ani konfiguracji selektorów CSS.
 
 **Gemini — logowanie w dwóch krokach:** w ustawieniach konta wybierz automatyczne
@@ -101,7 +105,12 @@ W razie odrzucenia logowania lub wygaśnięcia sesji aplikacja pokazuje błąd
 i wstrzymuje automatyczne próby; można ponowić logowanie w innej przeglądarce.
 Anulowanie wyłącza monitorowanie Gemini, zachowując lokalny profil.
 
-Claude używa panelu `https://claude.ai/settings/usage`. Jeśli konto ma kilka
+**Claude najlepiej działa przez Claude Code.** Jeśli Claude Code jest zalogowany na tym
+komputerze (`claude`, potem `/login`), limity są odczytywane przez jego oficjalne logowanie
+(tylko odczyt, bez zmian w plikach Claude Code). claude.ai blokuje odczyty w tle
+weryfikacją Cloudflare, więc przeglądarka jest tylko zapasową drogą.
+
+Zapasowo Claude używa panelu `https://claude.ai/settings/usage`. Jeśli konto ma kilka
 organizacji, można wpisać UUID właściwej organizacji w ustawieniach. Bez UUID
 aplikacja wybiera organizację automatycznie tylko wtedy, gdy jest dokładnie jedna.
 
