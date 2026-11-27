@@ -1,6 +1,7 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 mod auth_client;
 mod browser;
+mod claude_code;
 mod codex;
 mod engine;
 mod icon;

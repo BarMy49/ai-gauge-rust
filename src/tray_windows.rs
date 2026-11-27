@@ -173,7 +173,7 @@ impl NativeTray {
                     .parent(&menu)
                     .text(&format!(
                         "{} · {}",
-                        m.line(s.config.interval, s.config.show_remaining),
+                        m.line(s.config.interval, s.config.remaining()),
                         m.reset
                     ))
                     .build(&mut i)?;

@@ -65,11 +65,13 @@ Select a service, open **Konto i ustawienia**, sign in or enter the appropriate 
 | ChatGPT / Codex | ChatGPT sign-in; displays the account's Codex limits |
 | OpenAI API | Organization admin API key for cost reports |
 | DeepSeek API | Standard API key for balance reads |
-| Claude | Browser sign-in to the usage panel |
+| Claude | Claude Code signed in on this computer (preferred), or browser sign-in to the usage panel |
 | Anthropic API | Organization admin API key for cost reports |
 | Gemini | Browser sign-in; availability depends on the account's usage panel |
 
-Claude and Gemini need a system installation of Edge, Chrome, or Chromium. They use separate browser profiles; Flatpak browsers are not detected automatically. ChatGPT sign-in uses Codex CLI from `PATH`, or downloads the official authentication helper on demand. Initial download and sign-in require internet access. The app does not send generation prompts. Provider page changes can break browser integrations.
+If Claude Code is signed in on this computer (`claude`, then `/login`), Claude limits are read through its sign-in, which is read-only and never changed. claude.ai blocks background browser reads with a Cloudflare check, so the browser route is only a fallback. Sign-in for Claude and Gemini opens an ordinary browser window without automation, so "Continue with Google" works. Under **Ustawienia**, a separate option shows how much of the reference amount is left for the DeepSeek balance and the OpenAI/Anthropic budgets.
+
+Browser sign-in needs a system installation of Edge, Chrome, or Chromium; if the browser chosen in settings is not installed, any installed one is used. They use separate browser profiles; Flatpak browsers are not detected automatically. ChatGPT sign-in uses Codex CLI from `PATH`, or downloads the official authentication helper on demand. Initial download and sign-in require internet access. The app does not send generation prompts. Provider page changes can break browser integrations.
 
 Closing the window hides it in the tray; use the tray menu or the application's exit button to quit. Windows may put the icon in the hidden-icons area.
 

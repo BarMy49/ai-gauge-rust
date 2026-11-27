@@ -17,7 +17,7 @@ pub fn client() -> Result<Client> {
         .user_agent("AI-Gauge/0.2.0")
         .build()?)
 }
-fn response(r: RequestBuilder) -> Result<Value> {
+pub fn response(r: RequestBuilder) -> Result<Value> {
     let r = r
         .send()
         .map_err(|_| anyhow!("Brak polaczenia, blad TLS lub przekroczony czas odpowiedzi"))?;
