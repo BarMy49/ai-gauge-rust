@@ -3,6 +3,16 @@
 Every release on GitHub uses the section for its version from this file as its
 release notes. Add a section here before tagging a new version.
 
+## Unreleased
+
+### Fixed
+- **ChatGPT / Codex sign-in on ARM computers.** Without Codex CLI installed, the app
+  downloaded OpenAI's x86_64 sign-in helper even on arm64 Linux, where it cannot run.
+  It now downloads the helper built for the computer's processor: aarch64 or x86_64 on
+  Linux, and arm64 or x64 on Windows.
+- A wrong-processor helper saved by an older version is no longer used. Click
+  **Zaloguj się z ChatGPT** once and the right one is downloaded.
+
 ## 4.0.0 — 2026-11-28
 
 ### Changed

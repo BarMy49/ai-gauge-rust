@@ -21,6 +21,37 @@ pub struct Program {
 struct Receipt {
     release: String,
     sha256: String,
+    /// Release asset the binary came from. Older versions only ever downloaded the
+    /// x86_64 build and did not record it.
+    #[serde(default)]
+    asset: String,
+}
+const LEGACY_ASSET_LINUX: &str = "codex-app-server-x86_64-unknown-linux-musl.tar.gz";
+const LEGACY_ASSET_WINDOWS: &str = "codex-app-server-x86_64-pc-windows-msvc.exe.zip";
+
+/// Name of the official helper archive for this OS and CPU, or `None` when OpenAI
+/// does not publish one for it.
+fn asset_name(os: &str, arch: &str) -> Option<&'static str> {
+    Some(match (os, arch) {
+        ("windows", "x86_64") => LEGACY_ASSET_WINDOWS,
+        ("windows", "aarch64") => "codex-app-server-aarch64-pc-windows-msvc.exe.zip",
+        ("linux", "x86_64") => LEGACY_ASSET_LINUX,
+        ("linux", "aarch64") => "codex-app-server-aarch64-unknown-linux-musl.tar.gz",
+        _ => return None,
+    })
+}
+fn current_asset() -> Option<&'static str> {
+    asset_name(std::env::consts::OS, std::env::consts::ARCH)
+}
+/// The asset a cached helper came from, treating receipts without one as x86_64.
+fn receipt_asset(receipt: &Receipt) -> &str {
+    if !receipt.asset.is_empty() {
+        &receipt.asset
+    } else if cfg!(windows) {
+        LEGACY_ASSET_WINDOWS
+    } else {
+        LEGACY_ASSET_LINUX
+    }
 }
 const MAX_ARCHIVE: u64 = 256 * 1024 * 1024;
 const MAX_BINARY: u64 = 512 * 1024 * 1024;
@@ -42,10 +73,14 @@ pub fn resolve(
                 .context("Nie można zweryfikować modułu logowania")?,
         )?;
         ensure!(file_hash(&file)?==receipt.sha256,"Moduł logowania jest uszkodzony. Usuń katalog auth-client z danych aplikacji i połącz konto ponownie.");
-        return Ok(Program {
-            path: file,
-            standalone: true,
-        });
+        // A helper for another CPU (e.g. x86_64 on an arm64 PC) cannot run;
+        // skip it so the right one is downloaded at the next sign-in.
+        if Some(receipt_asset(&receipt)) == current_asset() {
+            return Ok(Program {
+                path: file,
+                standalone: true,
+            });
+        }
     }
     if let Ok(path) = which::which("codex") {
         return Ok(Program {
@@ -64,15 +99,15 @@ pub fn resolve(
     let client = Client::builder()
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(600))
-        .user_agent("AI-Gauge/0.3")
+        .user_agent(concat!("AI-Gauge/", env!("CARGO_PKG_VERSION")))
         .redirect(reqwest::redirect::Policy::limited(5))
         .build()?;
     let release:Value=client.get("https://api.github.com/repos/openai/codex/releases/latest").send().map_err(|_|anyhow!("Nie można pobrać modułu logowania z GitHub. Sprawdź połączenie lub zainstaluj oficjalny Codex CLI."))?.error_for_status().map_err(|_|anyhow!("GitHub nie udostępnił modułu logowania. Spróbuj ponownie później."))?.json()?;
-    let asset_name = if cfg!(windows) {
-        "codex-app-server-x86_64-pc-windows-msvc.exe.zip"
-    } else {
-        "codex-app-server-x86_64-unknown-linux-musl.tar.gz"
-    };
+    let asset_name = current_asset().ok_or_else(|| {
+        anyhow!(
+            "Brak oficjalnego modułu dla tego procesora. Zainstaluj Codex CLI i spróbuj ponownie."
+        )
+    })?;
     let asset=release["assets"].as_array().and_then(|a|a.iter().find(|a|a["name"]==asset_name)).ok_or_else(||anyhow!("Brak oficjalnego modułu dla tego systemu. Zainstaluj Codex CLI i spróbuj ponownie."))?;
     let raw = asset["browser_download_url"]
         .as_str()
@@ -187,6 +222,7 @@ pub fn resolve(
         serde_json::to_vec(&Receipt {
             release: release["tag_name"].as_str().unwrap_or("unknown").into(),
             sha256: binary_hash,
+            asset: asset_name.into(),
         })?,
     )?;
     Ok(Program {
@@ -230,6 +266,36 @@ fn validate_download_url(raw: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn picks_helper_for_the_cpu() {
+        assert_eq!(
+            asset_name("linux", "aarch64"),
+            Some("codex-app-server-aarch64-unknown-linux-musl.tar.gz")
+        );
+        assert_eq!(
+            asset_name("linux", "x86_64"),
+            Some("codex-app-server-x86_64-unknown-linux-musl.tar.gz")
+        );
+        assert_eq!(
+            asset_name("windows", "aarch64"),
+            Some("codex-app-server-aarch64-pc-windows-msvc.exe.zip")
+        );
+        assert_eq!(
+            asset_name("windows", "x86_64"),
+            Some("codex-app-server-x86_64-pc-windows-msvc.exe.zip")
+        );
+        assert_eq!(asset_name("linux", "riscv64"), None);
+    }
+    #[test]
+    fn old_receipts_count_as_x86_64() {
+        let old: Receipt = serde_json::from_str(r#"{"release":"v1","sha256":"00"}"#).unwrap();
+        assert!(receipt_asset(&old).contains("x86_64"));
+        let new = Receipt {
+            asset: "codex-app-server-aarch64-unknown-linux-musl.tar.gz".into(),
+            ..old
+        };
+        assert!(receipt_asset(&new).contains("aarch64"));
+    }
     #[test]
     fn only_official_downloads() {
         assert!(validate_download_url(
