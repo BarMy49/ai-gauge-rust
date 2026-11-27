@@ -1,4 +1,6 @@
-use crate::{browser::BrowserPool, claude_code, codex, model::*, providers, store::Store};
+use crate::{
+    browser::BrowserPool, claude_code, codex, gemini_cli, model::*, providers, store::Store,
+};
 use anyhow::{ensure, Result};
 use std::{
     collections::{BTreeMap, HashSet},
@@ -435,7 +437,9 @@ impl Engine {
                 .into_iter()
                 .filter(|s| {
                     d.config.services[s].enabled
-                        && !(*s == Service::Gemini && d.gemini_state.paused())
+                        && !(*s == Service::Gemini
+                            && d.gemini_state.paused()
+                            && !gemini_cli::available())
                         && !d.busy.contains(s)
                         && d.last
                             .get(s)
@@ -503,7 +507,8 @@ impl Engine {
                 return;
             }
             if s == Service::Gemini {
-                if !login && !logout && d.gemini_state.paused() {
+                // The pause only guards the browser sign-in flow.
+                if !login && !logout && d.gemini_state.paused() && !gemini_cli::available() {
                     return;
                 }
                 d.gemini_state = if login {
@@ -546,7 +551,10 @@ impl Engine {
         }
         // Claude Code's sign-in avoids the Cloudflare check claude.ai shows to
         // background browser reads, so it is preferred whenever it exists.
+        // Gemini CLI's sign-in likewise replaces the browser profile for Gemini.
         let via_claude_code = s == Service::Claude && claude_code::available();
+        let via_gemini_cli = s == Service::Gemini && gemini_cli::available();
+        let via_cli = via_claude_code || via_gemini_cli;
         let this = self.clone();
         std::thread::spawn(move || {
             let progress = |p| this.auth_progress(p);
@@ -575,6 +583,8 @@ impl Engine {
                         m.source = "Claude Code (oficjalne logowanie konta Claude)".into();
                     }
                     Ok(rows)
+                } else if via_gemini_cli {
+                    gemini_cli::read()
                 } else if login {
                     this.0.browser.login(s, &cfg)?;
                     Ok(vec![])
@@ -609,7 +619,7 @@ impl Engine {
                     if s == Service::Gemini {
                         d.gemini_state = if logout {
                             GeminiState::Disconnected
-                        } else if login {
+                        } else if login && !via_cli {
                             GeminiState::AwaitingSignIn
                         } else {
                             GeminiState::Connected
@@ -621,9 +631,9 @@ impl Engine {
                     }
                     let text = if logout {
                         "Wyczyszczono sesje lokalna"
-                    } else if login && s == Service::Gemini {
+                    } else if login && s == Service::Gemini && !via_cli {
                         "Zaloguj się ręcznie, zamknij osobne okno Gemini i wybierz Kontynuuj."
-                    } else if login && !(s == Service::Chatgpt) && !via_claude_code {
+                    } else if login && !(s == Service::Chatgpt) && !via_cli {
                         "Zaloguj się w otwartym oknie przeglądarki, zamknij je i naciśnij Odśwież"
                     } else {
                         "Aktualne"
@@ -672,6 +682,28 @@ impl Engine {
             }
         }
         d.revision += 1;
+    }
+    /// One synchronous read of a service, as a background refresh does it.
+    /// Used by `--check` to test every tracker without the window.
+    pub fn read_now(&self, s: Service) -> Result<Vec<Metric>> {
+        let cfg = self.0.data.lock().unwrap().config.services[&s].clone();
+        if s.api() {
+            let key = self.0.store.key(s)?;
+            providers::api(s, &key, &cfg)
+        } else if s == Service::Chatgpt {
+            let v = codex::limits(
+                &self.0.store.root,
+                Arc::new(AtomicBool::new(false)),
+                &|_| {},
+            )?;
+            providers::codex(&v)
+        } else if s == Service::Claude && claude_code::available() {
+            providers::claude(&claude_code::usage()?)
+        } else if s == Service::Gemini && gemini_cli::available() {
+            gemini_cli::read()
+        } else {
+            self.0.browser.refresh(s, &cfg)
+        }
     }
     pub fn cancel_login(&self) {
         if let Some(cancel) = self.0.login_cancel.lock().unwrap().as_ref() {

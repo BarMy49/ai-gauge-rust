@@ -31,7 +31,7 @@ zeroize = "1"
 [target.'cfg(windows)'.dependencies]
 native-windows-gui = { version = "1.0.13", default-features = false, features = ["message-window", "tray-notification", "menu", "cursor", "animation-timer", "high-dpi"] }
 keyring = { version = "3.6.3", default-features = false, features = ["windows-native"] }
-winapi = { version = "0.3", features = ["winuser", "shellapi", "processthreadsapi", "libloaderapi"] }
+winapi = { version = "0.3", features = ["winuser", "shellapi", "processthreadsapi", "libloaderapi", "wincon"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libloading = "0.8"

@@ -65,14 +65,33 @@ przycisk resetowania przywraca domyślną kolejność i widoczność.
 
 ## Integracje i znaczenie wartości
 
+### Wymagane narzędzia CLI
+
+Liczniki subskrypcji są odczytywane przez oficjalne narzędzia wiersza poleceń dostawców.
+**Zainstaluj CLI i zaloguj się w nim raz** na tym samym komputerze i koncie użytkownika:
+
+| Licznik | Narzędzie | Jednorazowe logowanie |
+|---|---|---|
+| ChatGPT / Codex | [Codex CLI](https://github.com/openai/codex) (`codex` w `PATH`) | `codex login` (lub przycisk logowania w aplikacji) |
+| Claude Code / Claude | [Claude Code](https://docs.claude.com/en/docs/claude-code) | `claude`, potem `/login` |
+| Gemini | [Gemini CLI](https://github.com/google-gemini/gemini-cli): `npm install -g @google/gemini-cli` | `gemini`, potem „Login with Google” |
+
+AI Gauge tylko odczytuje te logowania (`~/.codex`, `~/.claude/.credentials.json`,
+`~/.gemini/oauth_creds.json`) i nigdy ich nie zmienia. Gdy logowanie Claude Code wygaśnie,
+uruchom na chwilę `claude` i odśwież. Bez Claude Code lub Gemini CLI aplikacja używa
+logowania w przeglądarce, a claude.ai obecnie blokuje takie odczyty w tle.
+
+Test wszystkich liczników z terminala: `ai-gauge --check`. Każda usługa jest odświeżana
+raz, a wynik lub błąd trafia na ekran (bez kluczy i tokenów).
+
 | Usługa | Dostęp | Dane |
 |---|---|---|
 | ChatGPT / Codex | Oficjalna autoryzacja OpenAI: przeglądarka lub kod urządzenia | Liczniki Codex dostępne dla konta; to nie uniwersalny licznik wszystkich rozmów ChatGPT |
 | OpenAI API | Klucz **administracyjny** organizacji | Raport kosztów całej organizacji w bieżącym miesiącu UTC; % własnego budżetu |
 | DeepSeek API | Zwykły własny klucz API | Rzeczywiste saldo USD/CNY, środki promocyjne i doładowane; opcjonalnie % własnej kwoty odniesienia |
-| Claude Code / Claude | Logowanie Claude w oddzielnym profilu przeglądarki | Limity sesji, tygodnia i pozostałe zwrócone liczniki wykorzystania z panelu Usage |
+| Claude Code / Claude | Claude Code zalogowany na tym komputerze (zalecane) albo logowanie w przeglądarce | Limity sesji, tygodnia i pozostałe zwrócone liczniki wykorzystania z panelu Usage |
 | Anthropic API | Klucz **administracyjny** organizacji | Koszt organizacji w bieżącym miesiącu UTC; obejmuje też Claude Code rozliczane tym API |
-| Gemini | Logowanie Google w oddzielnym profilu przeglądarki | Dostępne dla konta procenty z panelu Limity wykorzystania |
+| Gemini | Gemini CLI zalogowany na tym komputerze (zalecane) albo logowanie Google w przeglądarce | Limity modeli Gemini CLI lub procenty z panelu Limity wykorzystania |
 
 **OpenAI i Anthropic:** raport kosztów nie jest saldem przedpłaty. Zwykły klucz do
 generowania nie ma wymaganych uprawnień do tego raportu. Budżet jest wyłącznie

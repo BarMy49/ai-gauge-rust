@@ -184,6 +184,15 @@ pub fn deepseek(v: &Value, c: &ServiceConfig) -> Result<Vec<Metric>> {
     ensure!(!rows.is_empty(), "Usluga nie zwrocila salda");
     Ok(rows)
 }
+/// Readable length of a limit window, e.g. 300 -> "5 h", 10080 -> "7 dni".
+fn window(mins: i64) -> String {
+    match mins {
+        1440 => "1 dzień".into(),
+        m if m >= 1440 && m % 1440 == 0 => format!("{} dni", m / 1440),
+        m if m >= 60 && m % 60 == 0 => format!("{} h", m / 60),
+        m => format!("{m} min"),
+    }
+}
 pub fn codex(v: &Value) -> Result<Vec<Metric>> {
     let map = v["rateLimitsByLimitId"]
         .as_object()
@@ -205,7 +214,7 @@ pub fn codex(v: &Value) -> Result<Vec<Metric>> {
             let mut m = Metric::new(
                 Service::Chatgpt,
                 format!("codex/{id}/{k}"),
-                format!("Codex: {name} / {mins} min"),
+                format!("Codex: {name} / {}", window(mins)),
                 format!("{p:.0}% wykorzystano"),
                 Some(p),
                 "Oficjalny Codex app-server. To limit Codex, nie wszystkich rozmow ChatGPT.",
@@ -317,6 +326,13 @@ mod tests {
         let m=codex(&json!({"rateLimitsByLimitId":{"x":{"primary":{"usedPercent":0,"windowDurationMins":300},"secondary":{"usedPercent":82,"windowDurationMins":10080}}}})).unwrap();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].percent, Some(0.));
+    }
+    #[test]
+    fn codex_windows_read_naturally() {
+        assert_eq!(window(300), "5 h");
+        assert_eq!(window(10080), "7 dni");
+        assert_eq!(window(43200), "30 dni");
+        assert_eq!(window(45), "45 min");
     }
     #[test]
     fn empty_is_not_zero() {

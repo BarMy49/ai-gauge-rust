@@ -4,6 +4,7 @@ mod browser;
 mod claude_code;
 mod codex;
 mod engine;
+mod gemini_cli;
 mod icon;
 mod model;
 mod providers;
@@ -31,6 +32,9 @@ fn run() -> Result<()> {
     let store = Arc::new(store::Store::new(
         temp.as_ref().map(|p| p.path().to_path_buf()).or(root),
     )?);
+    if args.iter().any(|a| a == "--check") {
+        return check(store);
+    }
     let _lock = store.lock()?;
     let mut config = store.load()?;
     if visual {
@@ -56,6 +60,50 @@ fn run() -> Result<()> {
         });
     }
     ui::run(engine, hidden)?;
+    Ok(())
+}
+/// `ai-gauge --check`: refresh every tracker once and print the result.
+/// Prints labels, percentages and errors only, never keys or tokens.
+fn check(store: Arc<store::Store>) -> Result<()> {
+    use std::io::Write;
+    // The release build is a GUI program; show the report in the terminal
+    // that started it.
+    #[cfg(windows)]
+    unsafe {
+        winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS);
+    }
+    let config = store.load()?;
+    let engine = engine::Engine::new(store, config.clone(), false);
+    let mut out = std::io::stdout().lock();
+    let mut failed = false;
+    for s in config.service_order.iter().copied() {
+        let cfg = &config.services[&s];
+        let cli = match s {
+            model::Service::Claude => claude_code::available(),
+            model::Service::Gemini => gemini_cli::available(),
+            _ => false,
+        };
+        if !cfg.enabled && !cli {
+            writeln!(out, "{}: pominięto (wyłączone)", s.name())?;
+            continue;
+        }
+        match engine.read_now(s) {
+            Ok(rows) => {
+                writeln!(out, "{}: OK", s.name())?;
+                for m in rows {
+                    writeln!(out, "  {}", m.line(config.interval, config.remaining()))?;
+                }
+            }
+            Err(e) => {
+                failed = true;
+                writeln!(out, "{}: BŁĄD {e:#}", s.name())?;
+            }
+        }
+    }
+    engine.shutdown();
+    if failed {
+        std::process::exit(2);
+    }
     Ok(())
 }
 fn main() {
