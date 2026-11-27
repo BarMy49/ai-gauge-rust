@@ -254,7 +254,12 @@ impl Engine {
                 c.service_order
                     .insert(position.min(c.service_order.len()), service);
             },
-            format!("{} — pozycja {} z 6", service.name(), position.min(5) + 1),
+            format!(
+                "{} — pozycja {} z {}",
+                service.name(),
+                position.min(Service::ALL.len() - 1) + 1,
+                Service::ALL.len()
+            ),
         );
     }
     pub fn reset_layout(&self) {

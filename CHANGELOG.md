@@ -3,6 +3,33 @@
 Every release on GitHub uses the section for its version from this file as its
 release notes. Add a section here before tagging a new version.
 
+## Unreleased
+
+### Changed
+- **New look for the whole window.** The app has its own light and dark color theme
+  that matches the tray icon (mint accent on deep navy), instead of the plain gray
+  system style.
+  - **Przegląd** shows each service as a card with a colored badge, the value in large
+    type, a usage bar and a status dot (green: fresh data, amber: stale, gray: none).
+    Cards sit in two columns when the window is wide enough and in one column otherwise.
+  - The sidebar has icons, a highlighted current page, the app version and
+    **Schowaj do tray** at the bottom. Narrow windows keep the compact top bar.
+  - Service pages switch between **Limity** and **Konto i ustawienia** with tabs.
+    Each limit is a card; the pinned one carries a "Na ikonie tray" label.
+    Sign-out and key removal sit in their own section in red.
+  - **Ustawienia** is split into cards. Theme and text size are picked with
+    segmented buttons, on/off options use switches with their explanation underneath.
+  - **Dostosuj usługi** uses compact rows with a drag handle, a visibility switch
+    and arrow buttons.
+  - **O aplikacji** shows the app icon, version, license and the small Slint badge.
+  - Status messages appear in a bar at the bottom of the window instead of between
+    the page content.
+- Every feature, option and keyboard shortcut works as before.
+
+### Fixed
+- Moving a service reported "pozycja N z 6" although there are 5 services. It now
+  counts the real number of services.
+
 ## 0.3.2 — 2026-11-27
 
 ### Fixed

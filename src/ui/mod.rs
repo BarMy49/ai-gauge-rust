@@ -267,7 +267,7 @@ pub fn run(engine: Engine, hidden: bool) -> Result<()> {
     let w = app.as_weak();
     app.on_move_requested(move |id, position| {
         if let Some(s) = Service::from_id(&id) {
-            e.reorder(s, position.clamp(0, 5) as usize);
+            e.reorder(s, position.clamp(0, Service::ALL.len() as i32 - 1) as usize);
             if let Some(a) = w.upgrade() {
                 render(&a, &e.snapshot());
                 let w = a.as_weak();
@@ -488,8 +488,8 @@ pub fn run(engine: Engine, hidden: bool) -> Result<()> {
                             button: PointerEventButton::Left,
                         });
                     };
-                    click(272., 213.);
-                    click(510., 250.);
+                    click(787., 163.);
+                    click(895., 163.);
                 }
             });
         }
@@ -499,17 +499,17 @@ pub fn run(engine: Engine, hidden: bool) -> Result<()> {
                 if let Some(a) = w.upgrade() {
                     use slint::platform::{PointerEventButton, WindowEvent};
                     a.window().dispatch_event(WindowEvent::PointerPressed {
-                        position: slint::LogicalPosition::new(280., 175.),
+                        position: slint::LogicalPosition::new(300., 163.),
                         button: PointerEventButton::Left,
                     });
                     let w = a.as_weak();
                     slint::Timer::single_shot(Duration::from_millis(100), move || {
                         if let Some(a) = w.upgrade() {
                             a.window().dispatch_event(WindowEvent::PointerMoved {
-                                position: slint::LogicalPosition::new(280., 338.),
+                                position: slint::LogicalPosition::new(300., 239.),
                             });
                             a.window().dispatch_event(WindowEvent::PointerReleased {
-                                position: slint::LogicalPosition::new(280., 338.),
+                                position: slint::LogicalPosition::new(300., 239.),
                                 button: PointerEventButton::Left,
                             });
                         }

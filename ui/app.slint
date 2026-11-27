@@ -1,93 +1,325 @@
-﻿import { Button, LineEdit, CheckBox, ComboBox, ScrollView, Palette, AboutSlint } from "std-widgets.slint";
+﻿import { LineEdit, ComboBox, ScrollView, Palette, AboutSlint } from "std-widgets.slint";
 
 export struct ServiceTile { id:string, name:string, value:string, detail:string, status:string, progress:float, known:bool, online:bool, visible:bool, position:int }
 export struct QuotaItem { id:string, title:string, value:string, percentage:string, reset:string, source:string, progress:float, known:bool, current:bool, pinned:bool }
+
+// Design tokens. Colors follow the app icon (mint on deep navy) and switch with the theme.
 global T {
-    out property<brush> bg: Palette.background;
-    out property<brush> surface: Palette.alternate-background;
-    out property<brush> text: Palette.foreground;
-    out property<brush> muted: Palette.alternate-foreground;
-    out property<brush> line: Palette.border;
-    out property<brush> accent: Palette.accent-background;
-    out property<float> small: 0.875;
-    out property<float> body: 1;
-    out property<float> heading: 1.25;
-    out property<float> title: 1.75;
-    out property<float> value: 2;
+    in-out property<bool> dark;
+    out property<color> bg: dark ? #0E1014 : #F3F4F6;
+    out property<color> side: dark ? #14171C : #FAFAFB;
+    out property<color> card: dark ? #1A1D23 : #FFFFFF;
+    out property<color> hover: dark ? #242830 : #EDEFF2;
+    out property<color> line: dark ? #2A2F38 : #E3E6EB;
+    out property<color> line-strong: dark ? #3B414C : #CBD0D8;
+    out property<color> text: dark ? #ECEEF2 : #15181D;
+    out property<color> muted: dark ? #9AA2AE : #5A6170;
+    out property<color> accent: dark ? #50D7AA : #0B8463;
+    out property<color> accent-hover: dark ? #72E2BC : #096F53;
+    out property<color> on-accent: dark ? #08201A : #FFFFFF;
+    out property<color> accent-soft: dark ? #50D7AA24 : #0B84631A;
+    out property<color> accent-text: dark ? #72E2BC : #08704F;
+    out property<color> track: dark ? #272B33 : #E7EAEE;
+    out property<color> success: dark ? #4ADE80 : #16A34A;
+    out property<color> warning: dark ? #FBBF24 : #B45309;
+    out property<color> danger: dark ? #F87171 : #C2362F;
+    out property<color> danger-soft: dark ? #F8717122 : #C2362F14;
+    out property<color> shadow: dark ? #00000055 : #10182812;
+    out property<length> radius: 12px;
 }
-component Body inherits Text { color:T.text; font-size:T.body * 1rem; wrap:word-wrap; }
-component Hint inherits Text { color:T.muted; font-size:T.small * 1rem; wrap:word-wrap; }
-component Heading inherits Body { font-size:T.heading * 1rem; font-weight:600; }
+
+component Body inherits Text { color:T.text; font-size:1rem; wrap:word-wrap; }
+component Hint inherits Text { color:T.muted; font-size:0.875rem; wrap:word-wrap; }
+component Heading inherits Text { color:T.text; font-size:1.0625rem; font-weight:600; wrap:word-wrap; }
+component Label inherits Text { color:T.text; font-size:0.875rem; font-weight:600; wrap:word-wrap; }
 component Rule inherits Rectangle { height:1px; background:T.line; }
-component Action inherits Button { min-height:max(40px,1.75rem); max-height:max(40px,1.75rem); }
-component LabeledCheck inherits Rectangle {
+
+component Card inherits Rectangle {
+    background:T.card; border-radius:T.radius; border-width:1px; border-color:T.line; vertical-stretch:0;
+    drop-shadow-blur:6px; drop-shadow-offset-y:1px; drop-shadow-color:T.shadow;
+}
+
+component FocusRing inherits Rectangle {
+    in property<length> radius;
+    x:-3px; y:-3px;
+    border-radius:self.radius + 3px; border-width:2px; border-color:T.accent;
+}
+
+// Button with four looks: primary (filled), secondary (outlined), ghost (flat), danger, soft (tinted).
+// "seg-on" / "seg-off" are the two states of a segmented control.
+component Btn inherits Rectangle {
     in property<string> text;
-    in-out property<bool> checked;
-    callback toggled();
-    forward-focus:check;
-    HorizontalLayout { spacing:8px;
-        check := CheckBox { checked<=>root.checked; accessible-label:root.text; toggled=>{root.toggled();} }
-        Body { text:root.text; min-width:0px; horizontal-stretch:1;
-            TouchArea { clicked=>{root.checked=!root.checked;root.toggled();} }
+    in property<image> icon;
+    in property<string> kind:"secondary";
+    in property<bool> enabled:true;
+    in property<bool> small;
+    in property<bool> icon-only;
+    in property<bool> icon-after;
+    in property<string> label;
+    out property<bool> has-focus: fs.has-focus;
+    callback clicked();
+    private property<length> h: small ? max(32px, 2rem) : max(40px, 2.5rem);
+    private property<color> fg:
+        kind=="primary" ? T.on-accent :
+        kind=="danger" ? T.danger :
+        kind=="soft" || kind=="seg-on" ? (kind=="seg-on" ? T.text : T.accent-text) :
+        kind=="seg-off" ? T.muted : T.text;
+    min-height:h; max-height:h;
+    min-width: icon-only ? h : max(h, l.min-width);
+    max-width: icon-only ? h : 10000px;
+    horizontal-stretch:0; vertical-stretch:0;
+    border-radius: kind=="seg-on" || kind=="seg-off" ? 8px : 9px;
+    background:
+        kind=="primary" ? (ta.has-hover && enabled ? T.accent-hover : T.accent) :
+        kind=="soft" ? T.accent-soft :
+        kind=="seg-on" ? T.card :
+        kind=="danger" ? (ta.has-hover && enabled ? T.danger-soft : transparent) :
+        ta.has-hover && enabled ? T.hover :
+        kind=="secondary" ? T.card : transparent;
+    border-width: kind=="secondary" || kind=="danger" ? 1px : 0px;
+    border-color: kind=="danger" ? T.danger.with-alpha(0.45) : T.line-strong;
+    drop-shadow-blur: kind=="seg-on" ? 3px : 0px;
+    drop-shadow-color: T.shadow;
+    opacity: enabled ? 1 : 0.45;
+    animate background { duration:120ms; }
+    forward-focus:fs;
+    accessible-role:button;
+    accessible-label: label!="" ? label : text;
+    accessible-enabled:enabled;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    fs := FocusScope {
+        key-pressed(e) => {
+            if root.enabled && (e.text==" " || e.text==Key.Return) { root.clicked(); return accept; }
+            return reject;
         }
     }
+    ta := TouchArea { enabled:root.enabled; mouse-cursor:pointer; clicked => { root.clicked(); } }
+    l := HorizontalLayout {
+        padding-left: icon-only ? 0px : (small ? 12px : 16px);
+        padding-right: self.padding-left;
+        alignment:center; spacing:8px;
+        if root.icon.width>0 && !root.icon-after: Image {
+            source:root.icon; colorize:root.fg; image-fit:contain;
+            width: root.small ? 1rem : 1.125rem; height:self.width; y:(parent.height - self.height)/2;
+        }
+        if !root.icon-only && root.text!="": Text {
+            text:root.text; color:root.fg; vertical-alignment:center;
+            font-size: root.small ? 0.875rem : 0.9375rem; font-weight:600;
+        }
+        if root.icon.width>0 && root.icon-after: Image {
+            source:root.icon; colorize:root.fg; image-fit:contain;
+            width: root.small ? 1rem : 1.125rem; height:self.width; y:(parent.height - self.height)/2;
+        }
+    }
+    if fs.has-focus: FocusRing { radius:root.border-radius; width:root.width + 6px; height:root.height + 6px; }
 }
+
+component Toggle inherits Rectangle {
+    in-out property<bool> checked;
+    in property<string> label;
+    in property<bool> enabled:true;
+    callback toggled();
+    width:max(40px, 2.5rem); height:max(22px, 1.375rem);
+    border-radius:self.height/2;
+    background: checked ? (ta.has-hover ? T.accent-hover : T.accent) : (ta.has-hover ? T.line-strong : T.track);
+    border-width: checked ? 0px : 1px; border-color:T.line-strong;
+    opacity: enabled ? 1 : 0.45;
+    animate background { duration:150ms; }
+    forward-focus:fs;
+    accessible-role:switch;
+    accessible-label:label;
+    accessible-enabled:enabled;
+    accessible-checkable:true;
+    accessible-checked<=>checked;
+    accessible-action-default => { root.flip(); }
+    function flip() { if root.enabled { root.checked = !root.checked; root.toggled(); } }
+    fs := FocusScope {
+        key-pressed(e) => { if e.text==" " || e.text==Key.Return { root.flip(); return accept; } return reject; }
+    }
+    ta := TouchArea { mouse-cursor:pointer; clicked => { root.flip(); } }
+    Rectangle {
+        width:root.height - 6px; height:self.width; y:3px;
+        x: root.checked ? root.width - self.width - 3px : 3px;
+        border-radius:self.width/2;
+        background: root.checked ? T.on-accent : T.card;
+        drop-shadow-blur:2px; drop-shadow-color:#00000040;
+        animate x { duration:150ms; easing:ease-out; }
+    }
+    if fs.has-focus: FocusRing { radius:root.border-radius; width:root.width + 6px; height:root.height + 6px; }
+}
+
+// A label (and optional hint) with a switch on the right. Clicking the text toggles too.
+component ToggleRow inherits Rectangle {
+    in property<string> text;
+    in property<string> hint;
+    in-out property<bool> checked;
+    callback toggled();
+    vertical-stretch:0;
+    forward-focus:sw;
+    HorizontalLayout { spacing:16px;
+        VerticalLayout { spacing:2px; alignment:center; horizontal-stretch:1; min-width:0px;
+            Body { text:root.text; }
+            if root.hint!="": Hint { text:root.hint; }
+        }
+        VerticalLayout { alignment:center;
+            sw := Toggle { checked<=>root.checked; label:root.text; toggled => { root.toggled(); } }
+        }
+    }
+    TouchArea { x:0; width:parent.width - sw.width - 16px; clicked => { sw.checked = !sw.checked; root.toggled(); } }
+}
+
+component Avatar inherits Rectangle {
+    in property<string> service;
+    in property<length> size:2.25rem;
+    private property<color> hue:
+        service=="chatgpt" ? #10A37F :
+        service=="openai" ? #7C5CFF :
+        service=="deepseek" ? #4D6BFE :
+        service=="claude" ? #D97757 :
+        service=="anthropic" ? #B7791F : #6B7280;
+    width:size; height:size; border-radius:size*0.3;
+    background:hue.with-alpha(T.dark ? 0.22 : 0.13);
+    Text {
+        width:parent.width; height:parent.height;
+        text: service=="chatgpt" ? "G" : service=="openai" ? "O" : service=="deepseek" ? "D" : service=="claude" ? "C" : service=="anthropic" ? "A" : "?";
+        color: T.dark ? root.hue.brighter(0.45) : root.hue.darker(0.15);
+        font-size:root.size*0.46; font-weight:700;
+        horizontal-alignment:center; vertical-alignment:center;
+        accessible-role:none;
+    }
+}
+
+component Chip inherits Rectangle {
+    in property<string> text;
+    in property<color> tone:T.muted;
+    in property<bool> dot:true;
+    border-radius:self.height/2;
+    background:tone.with-alpha(T.dark ? 0.16 : 0.1);
+    horizontal-stretch:0; vertical-stretch:0;
+    HorizontalLayout { padding-left:10px; padding-right:10px; padding-top:3px; padding-bottom:3px; spacing:6px;
+        if root.dot: VerticalLayout { alignment:center; Rectangle { width:6px; height:6px; border-radius:3px; background:root.tone; } }
+        Text { text:root.text; color:root.tone; font-size:0.8125rem; font-weight:600; vertical-alignment:center; }
+    }
+}
+
 component Meter inherits Rectangle {
     in property<float> value;
     in property<bool> known;
-    height:8px; background:T.surface; border-radius:4px; border-width:1px; border-color:T.line;
+    height:8px; background:T.track; border-radius:4px;
     accessible-role:progress-indicator;
     accessible-value: known ? round(value*100)+"%" : "Brak danych";
-    Rectangle { x:0px; y:0px; width:parent.width*clamp(root.value,0,1); height:parent.height; border-radius:4px; background:root.known?T.accent:transparent; animate width { duration:120ms; } }
-}
-component ServiceRow inherits Rectangle {
-    in property<ServiceTile> item;
-    in property<bool> compact;
-    callback activate();
-    VerticalLayout { padding-top:16px; padding-bottom:16px; spacing:12px;
-        GridLayout { spacing:16px;
-            VerticalLayout { col:0; row:0; colspan:root.compact?2:1; min-width:0px; horizontal-stretch:1; spacing:4px;
-                Heading { text:root.item.name; }
-                Hint { text:root.item.detail; }
-                Hint { text:root.item.status; }
-            }
-            Body { col:root.compact?0:1; row:root.compact?1:0; width:11rem; text:root.item.value; font-size:T.value * 1rem; font-weight:600; vertical-alignment:center; }
-            Action { col:root.compact?1:2; row:root.compact?1:0; text:"Otwórz"; accessible-label:"Otwórz "+root.item.name; clicked=>{root.activate();} }
-        }
-        Meter { value:root.item.progress; known:root.item.known; }
-        Rule {}
+    Rectangle {
+        x:0px; y:0px; height:parent.height; border-radius:4px;
+        width: root.known ? max(parent.height, parent.width*clamp(root.value,0,1)) : 0px;
+        background:T.accent;
+        animate width { duration:200ms; easing:ease-out; }
     }
 }
-component QuotaRow inherits Rectangle {
+
+component NavItem inherits Rectangle {
+    in property<string> text;
+    in property<image> icon;
+    in property<string> service;
+    in property<string> trailing;
+    in property<bool> selected;
+    callback clicked();
+    height:max(38px, 2.375rem);
+    border-radius:8px;
+    background: selected ? T.accent-soft : ta.has-hover ? T.hover : transparent;
+    animate background { duration:100ms; }
+    forward-focus:fs;
+    accessible-role:button;
+    accessible-label:text;
+    accessible-action-default => { root.clicked(); }
+    fs := FocusScope {
+        key-pressed(e) => { if e.text==" " || e.text==Key.Return { root.clicked(); return accept; } return reject; }
+    }
+    ta := TouchArea { mouse-cursor:pointer; clicked => { root.clicked(); } }
+    HorizontalLayout { padding-left:10px; padding-right:10px; spacing:10px;
+        if root.service!="": VerticalLayout { alignment:center; Avatar { service:root.service; size:1.5rem; } }
+        if root.service=="" && root.icon.width>0: VerticalLayout { alignment:center;
+            Rectangle { width:1.5rem; height:1.5rem;
+                Image { source:root.icon; colorize: root.selected ? T.accent-text : T.muted; width:1.125rem; height:1.125rem; image-fit:contain; }
+            }
+        }
+        Text { text:root.text; color: root.selected ? T.accent-text : T.text; font-weight: root.selected ? 600 : 500;
+            vertical-alignment:center; overflow:elide; horizontal-stretch:1; min-width:0px; accessible-role:none; }
+        if root.trailing!="": Text { text:root.trailing; color:T.muted; font-size:0.8125rem; vertical-alignment:center; accessible-role:none; }
+    }
+    if fs.has-focus: FocusRing { radius:root.border-radius; width:root.width + 6px; height:root.height + 6px; }
+}
+
+component ServiceCard inherits Card {
+    in property<ServiceTile> item;
+    callback activate();
+    background: ta.has-hover ? (T.dark ? #1F232A : #FCFCFD) : T.card;
+    border-color: ta.has-hover ? T.line-strong : T.line;
+    ta := TouchArea { mouse-cursor:pointer; clicked => { root.activate(); } }
+    VerticalLayout { padding:20px; spacing:14px;
+        HorizontalLayout { spacing:12px;
+            VerticalLayout { alignment:center; Avatar { service:root.item.id; } }
+            VerticalLayout { alignment:center; spacing:2px; horizontal-stretch:1; min-width:0px;
+                Heading { text:root.item.name; wrap:no-wrap; overflow:elide; }
+                Hint { text:root.item.detail; wrap:no-wrap; overflow:elide; }
+            }
+        }
+        Text { text:root.item.value; color:T.text; font-size:1.875rem; font-weight:700; overflow:elide; }
+        Meter { value:root.item.progress; known:root.item.known; }
+        HorizontalLayout { spacing:8px;
+            VerticalLayout { alignment:center; horizontal-stretch:1; min-width:0px;
+                HorizontalLayout { spacing:8px;
+                    VerticalLayout { alignment:center;
+                        Rectangle { width:8px; height:8px; border-radius:4px;
+                            background: root.item.online ? T.success : root.item.known ? T.warning : T.line-strong; }
+                    }
+                    Hint { text: root.item.status!="" ? root.item.status : root.item.online ? "Aktualne" : "Brak danych"; horizontal-stretch:1; }
+                }
+            }
+            Btn { text:"Otwórz"; kind:"ghost"; small:true; icon-after:true; icon:@image-url("../assets/icons/chevron.svg"); label:"Otwórz "+root.item.name; clicked => { root.activate(); } }
+        }
+    }
+}
+
+component QuotaCard inherits Card {
     in property<QuotaItem> item;
     callback pin();
-    VerticalLayout { padding-top:16px; padding-bottom:16px; spacing:12px;
-        Heading { text:root.item.title; }
-        FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:12px;
-            Body { text:root.item.value; font-size:1.5rem; font-weight:600; }
-            Action { text:root.item.pinned?"Na ikonie tray":"Pokaż na ikonie"; enabled:root.item.known; clicked=>{root.pin();} }
+    VerticalLayout { padding:20px; spacing:12px;
+        HorizontalLayout { spacing:12px;
+            Heading { text:root.item.title; horizontal-stretch:1; min-width:0px; }
+            if root.item.pinned: VerticalLayout { alignment:start; Chip { text:"Na ikonie tray"; tone:T.accent-text; } }
         }
-        if root.item.percentage!="" && root.item.percentage!=root.item.value:Body { text:root.item.percentage; }
-        if !root.item.current:Body { text:"Dane nieaktualne — odśwież, aby sprawdzić limit."; }
+        Text { text:root.item.value; color:T.text; font-size:1.75rem; font-weight:700; wrap:word-wrap; }
+        if root.item.percentage!="" && root.item.percentage!=root.item.value: Body { text:root.item.percentage; color:T.muted; }
+        if !root.item.current: Text { text:"Dane nieaktualne — odśwież, aby sprawdzić limit."; color:T.warning; font-size:0.875rem; font-weight:600; wrap:word-wrap; }
         Meter { value:root.item.progress; known:root.item.known && root.item.current; }
-        Hint { text:root.item.reset; }
-        Hint { text:root.item.source; }
-        Rule {}
+        HorizontalLayout { spacing:12px;
+            VerticalLayout { spacing:2px; alignment:center; horizontal-stretch:1; min-width:0px;
+                if root.item.reset!="": Hint { text:root.item.reset; }
+                if root.item.source!="": Hint { text:root.item.source; }
+            }
+            VerticalLayout { alignment:end;
+                Btn { text:root.item.pinned ? "Na ikonie tray" : "Pokaż na ikonie"; kind:root.item.pinned ? "soft" : "secondary"; small:true; enabled:root.item.known; clicked => { root.pin(); } }
+            }
+        }
     }
 }
-component CustomizeRow inherits Rectangle {
+
+component CustomizeRow inherits Card {
     in property<ServiceTile> item;
+    in property<int> count:5;
+    in property<bool> compact;
     in property<string> focus-id;
     in property<int> focus-generation;
     callback visibility(bool);
     callback move(int);
     private property<length> drag-height:1px;
+    private property<int> target: clamp(root.item.position+round((drag.mouse-y - drag.pressed-y)/root.drag-height),0,root.count - 1);
     forward-focus:focus;
-    background:drag.pressed?Palette.selection-background:T.surface;
-    border-width:focus.has-focus?2px:0px;
-    border-color:T.accent;
+    background: drag.pressed ? T.hover : T.card;
+    border-color: focus.has-focus ? T.accent : T.line;
+    border-width: focus.has-focus ? 2px : 1px;
     accessible-role:list-item;
-    accessible-label:item.name+", pozycja "+(item.position+1)+" z 6";
+    accessible-label:item.name+", pozycja "+(item.position+1)+" z "+root.count;
     changed focus-id => { if root.focus-id==root.item.id { focus.focus(); } }
     changed focus-generation => { if root.focus-id==root.item.id { focus.focus(); } }
     init => { if root.focus-id==root.item.id { focus.focus(); } }
@@ -96,30 +328,68 @@ component CustomizeRow inherits Rectangle {
         if e.text==Key.DownArrow { root.move(root.item.position+1); return accept; }
         return reject;
     } }
-    VerticalLayout { padding:16px; spacing:8px;
+    VerticalLayout { padding-left:12px; padding-right:16px; padding-top:12px; padding-bottom:12px; spacing:10px;
         HorizontalLayout { spacing:12px;
-            Rectangle { width:2rem; height:2.5rem;
-                Image { source:@image-url("../assets/icons/grip.svg"); colorize:T.text; width:parent.width; height:parent.height; image-fit:contain; }
+            Rectangle { width:2rem; height:2.5rem; border-radius:6px; background: drag.has-hover || drag.pressed ? T.hover : transparent;
+                Image { source:@image-url("../assets/icons/grip.svg"); colorize:T.muted; width:1.25rem; height:1.25rem; image-fit:contain; }
                 drag := TouchArea { mouse-cursor:MouseCursor.move;
                     pointer-event(e)=>{
                         if e.kind==PointerEventKind.down { root.drag-height=root.height; }
                         if e.kind==PointerEventKind.up && e.button==PointerEventButton.left {
-                            root.move(clamp(root.item.position+round((self.mouse-y - self.pressed-y)/root.drag-height),0,5));
+                            root.move(root.target);
                         }
                     }
                 }
             }
-            Heading { text:root.item.name; horizontal-stretch:1; }
-            Body { text:(root.item.position+1)+" / 6"; }
+            VerticalLayout { alignment:center; Avatar { service:root.item.id; } }
+            VerticalLayout { alignment:center; spacing:2px; horizontal-stretch:1; min-width:0px;
+                Heading { text:root.item.name; wrap:no-wrap; overflow:elide; }
+                Hint { text: drag.pressed ? "Upuść na pozycji "+(root.target+1) : "Pozycja "+(root.item.position+1)+" z "+root.count; color: drag.pressed ? T.accent-text : T.muted; }
+            }
+            if !root.compact: HorizontalLayout { spacing:12px; horizontal-stretch:0;
+                VerticalLayout { alignment:center; Hint { text:"Widoczna"; } }
+                VerticalLayout { alignment:center; Toggle { label:"Pokaż w przeglądzie i na liście usług"; checked:root.item.visible; toggled => { root.visibility(self.checked); } } }
+                Rectangle { width:4px; }
+                VerticalLayout { alignment:center; Btn { icon-only:true; small:true; kind:"secondary"; label:"Przenieś w górę"; icon:@image-url("../assets/icons/up.svg"); enabled:root.item.position>0; clicked => { root.move(root.item.position - 1); } } }
+                VerticalLayout { alignment:center; Btn { icon-only:true; small:true; kind:"secondary"; label:"Przenieś w dół"; icon:@image-url("../assets/icons/down.svg"); enabled:root.item.position<root.count - 1; clicked => { root.move(root.item.position+1); } } }
+            }
         }
-        LabeledCheck { text:"Pokaż w przeglądzie i na liście usług"; checked:root.item.visible; toggled=>{root.visibility(self.checked);} }
-        FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-            Action { text:"Przenieś w górę"; icon:@image-url("../assets/icons/up.svg"); colorize-icon:true; enabled:root.item.position>0; clicked=>{root.move(root.item.position - 1);} }
-            Action { text:"Przenieś w dół"; icon:@image-url("../assets/icons/down.svg"); colorize-icon:true; enabled:root.item.position<5; clicked=>{root.move(root.item.position+1);} }
+        if root.compact: HorizontalLayout { spacing:12px;
+            VerticalLayout { alignment:center; Toggle { label:"Pokaż w przeglądzie i na liście usług"; checked:root.item.visible; toggled => { root.visibility(self.checked); } } }
+            VerticalLayout { alignment:center; horizontal-stretch:1; Hint { text:"Widoczna"; } }
+            Btn { icon-only:true; small:true; kind:"secondary"; label:"Przenieś w górę"; icon:@image-url("../assets/icons/up.svg"); enabled:root.item.position>0; clicked => { root.move(root.item.position - 1); } }
+            Btn { icon-only:true; small:true; kind:"secondary"; label:"Przenieś w dół"; icon:@image-url("../assets/icons/down.svg"); enabled:root.item.position<root.count - 1; clicked => { root.move(root.item.position+1); } }
         }
-        if drag.pressed:Hint { text:"Upuść na pozycji "+(clamp(root.item.position+round((drag.mouse-y - drag.pressed-y)/root.drag-height),0,5)+1); }
     }
 }
+
+// A settings line: text on the left, control on the right (stacked when narrow).
+component SettingRow inherits Rectangle {
+    in property<string> text;
+    in property<string> hint;
+    in property<bool> stacked;
+    vertical-stretch:0;
+    GridLayout { spacing-horizontal:16px; spacing-vertical:10px;
+        VerticalLayout { row:0; col:0; spacing:2px; alignment:center; horizontal-stretch:1; min-width:0px;
+            Body { text:root.text; }
+            if root.hint!="": Hint { text:root.hint; }
+        }
+        VerticalLayout { row:root.stacked ? 1 : 0; col:root.stacked ? 0 : 1; alignment:center; horizontal-stretch:0; @children }
+    }
+}
+
+component Section inherits Card {
+    in property<string> title;
+    in property<string> subtitle;
+    VerticalLayout { padding:20px; spacing:16px;
+        if root.title!="": VerticalLayout { spacing:4px;
+            Heading { text:root.title; }
+            if root.subtitle!="": Hint { text:root.subtitle; }
+        }
+        @children
+    }
+}
+
 export component MainWindow inherits Window {
     title:"AI Gauge"; icon:@image-url("../assets/ai-gauge.svg");
     preferred-width:1040px; preferred-height:760px; min-width:640px; min-height:480px;
@@ -169,154 +439,277 @@ export component MainWindow inherits Window {
     callback save-requested(); callback login-requested(bool); callback logout-requested(); callback delete-key-requested();
     callback refresh-requested(); callback pin-requested(string); callback general-save-requested(); callback hide-requested(); callback quit-requested();
     callback open-auth-requested(); callback cancel-auth-requested();
-    changed appearance => { Palette.color-scheme=root.appearance==1?ColorScheme.light:root.appearance==2?ColorScheme.dark:ColorScheme.unknown; }
     in property<bool> wide:true;
+
+    // The system theme is only known through the style palette: Fluent's dark background is #1C1C1C.
+    private property<bool> is-dark: root.appearance==2 || (root.appearance==0 && Palette.background==#1C1C1C);
+    changed appearance => { Palette.color-scheme=root.appearance==1?ColorScheme.light:root.appearance==2?ColorScheme.dark:ColorScheme.unknown; }
+    changed is-dark => { T.dark = root.is-dark; }
+    init => { T.dark = root.is-dark; }
+
+    private property<int> cols: root.wide && sv.visible-width >= 44rem ? 2 : 1;
+    private property<string> heading:
+        root.page=="overview" ? "Przegląd" : root.page=="settings" ? "Ustawienia" :
+        root.page=="customize" ? "Dostosuj usługi" : root.page=="about" ? "O aplikacji" : root.page-title;
+    private property<string> subheading:
+        root.page=="overview" ? "Twoje limity i środki w jednym miejscu." :
+        root.page=="customize" ? "Przeciągnij uchwyt lub użyj strzałek. Kolejność i widoczność są wspólne dla przeglądu i listy usług." :
+        root.page=="settings" ? "Wygląd, czytelność i praca w tle." :
+        root.page=="service" ? root.page-subtitle : "Natywny monitor limitów i środków usług AI.";
+
+    function open-service(id:string) {
+        root.selected-service=id; root.page="service"; root.settings-open=false; root.service-changed(id);
+    }
+
     Rectangle { width:parent.width; height:parent.height;
     HorizontalLayout { spacing:0;
-        if root.wide:Rectangle { width:14rem; background:T.surface; accessible-role:navigation;
-            VerticalLayout { padding:16px; spacing:12px;
-                Heading { text:"AI Gauge"; }
-                Action { text:"Przegląd"; primary:root.page=="overview"; clicked=>{root.page="overview";} }
-                ScrollView { vertical-stretch:1;
-                    VerticalLayout { spacing:8px;
-                        for item in root.services:Action { text:item.name; primary:root.page=="service" && root.selected-service==item.id;
-                            clicked=>{root.selected-service=item.id;root.page="service";root.settings-open=false;root.service-changed(item.id);} }
-                        Rectangle { vertical-stretch:1; }
+        if root.wide: Rectangle { width:15rem; background:T.side; accessible-role:navigation;
+            Rectangle { x:parent.width - 1px; width:1px; background:T.line; }
+            VerticalLayout { padding:14px; padding-top:18px; spacing:4px;
+                HorizontalLayout { spacing:10px; padding-left:6px; padding-bottom:14px;
+                    Image { source:@image-url("../assets/ai-gauge.svg"); width:2rem; height:2rem; }
+                    VerticalLayout { alignment:center; spacing:0px;
+                        Text { text:"AI Gauge"; color:T.text; font-size:1.0625rem; font-weight:700; }
+                        Text { text:"v" + root.app-version; color:T.muted; font-size:0.75rem; }
                     }
                 }
-                Action { text:"Dostosuj usługi"; primary:root.page=="customize"; clicked=>{root.page="customize";} }
-                Action { text:"Ustawienia"; primary:root.page=="settings"; clicked=>{root.page="settings";} }
-                Action { text:"O aplikacji"; clicked=>{root.page="about";} }
+                NavItem { text:"Przegląd"; icon:@image-url("../assets/icons/grid.svg"); selected:root.page=="overview"; clicked => { root.page="overview"; } }
+                HorizontalLayout { padding-left:10px; padding-top:18px;
+                    Text { text:"USŁUGI"; color:T.muted; font-size:0.75rem; font-weight:600; letter-spacing:0.6px; accessible-role:none; }
+                }
+                Rectangle { height:4px; }
+                ScrollView { vertical-stretch:1;
+                    VerticalLayout { spacing:2px; alignment:start;
+                        for item in root.services: NavItem { text:item.name; service:item.id;
+                            selected:root.page=="service" && root.selected-service==item.id;
+                            clicked => { root.open-service(item.id); } }
+                    }
+                }
+                Rule {}
+                Rectangle { height:6px; }
+                NavItem { text:"Dostosuj usługi"; icon:@image-url("../assets/icons/list.svg"); selected:root.page=="customize"; clicked => { root.page="customize"; } }
+                NavItem { text:"Ustawienia"; icon:@image-url("../assets/icons/sliders.svg"); selected:root.page=="settings"; clicked => { root.page="settings"; } }
+                NavItem { text:"O aplikacji"; icon:@image-url("../assets/icons/info.svg"); selected:root.page=="about"; clicked => { root.page="about"; } }
+                NavItem { text:"Schowaj do tray"; icon:@image-url("../assets/icons/tray.svg"); clicked => { root.hide-requested(); } }
             }
         }
-        VerticalLayout { padding:root.wide?24px:16px; spacing:16px;
-            if !root.wide:FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-                Action { text:"Przegląd"; clicked=>{root.page="overview";} }
-                ComboBox { model:root.navigation-titles; current-index<=>root.navigation-index; selected(i)=>{root.navigation-changed(self.current-index);} }
-                Action { text:"Ustawienia"; clicked=>{root.page="settings";} }
+        VerticalLayout { spacing:0;
+            if !root.wide: Rectangle { background:T.side;
+                Rectangle { y:parent.height - 1px; height:1px; background:T.line; }
+                FlexboxLayout { padding:10px; cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
+                    Image { source:@image-url("../assets/ai-gauge.svg"); width:1.75rem; height:1.75rem; }
+                    Btn { text:"Przegląd"; small:true; kind:root.page=="overview" ? "soft" : "ghost"; clicked => { root.page="overview"; } }
+                    ComboBox { model:root.navigation-titles; current-index<=>root.navigation-index; selected(i) => { root.navigation-changed(self.current-index); } }
+                    Btn { text:"Ustawienia"; small:true; kind:root.page=="settings" ? "soft" : "ghost"; clicked => { root.page="settings"; } }
+                    Btn { icon-only:true; small:true; kind:"ghost"; label:"Schowaj do tray"; icon:@image-url("../assets/icons/tray.svg"); clicked => { root.hide-requested(); } }
+                }
             }
-            ScrollView { vertical-stretch:1; accessible-role:main;
-                VerticalLayout { spacing:24px;
-                    VerticalLayout { spacing:8px;
-                        Text { text:root.page=="overview"?"Przegląd":root.page=="settings"?"Ustawienia":root.page=="customize"?"Dostosuj usługi":root.page=="about"?"O aplikacji":root.page-title; color:T.text; font-size:T.title * 1rem; font-weight:600; wrap:word-wrap; }
-                        Hint { text:root.page=="overview"?"Twoje limity i środki w jednym miejscu.":root.page=="customize"?"Przeciągnij uchwyt lub użyj przycisków. Kolejność i widoczność są wspólne dla przeglądu i listy usług.":root.page=="settings"?"Wygląd, czytelność i praca w tle.":root.page=="service"?root.page-subtitle:"Natywny monitor limitów i środków usług AI."; }
-                    }
-                    if root.page=="overview":VerticalLayout { spacing:16px;
-                        FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-                            Action { text:"Odśwież"; icon:@image-url("../assets/icons/refresh.svg"); colorize-icon:true; clicked=>{root.refresh-requested();} }
-                            Action { text:"Dostosuj usługi"; clicked=>{root.page="customize";} }
+            sv := ScrollView { vertical-stretch:1; accessible-role:main;
+                VerticalLayout { padding: root.wide ? 32px : 16px; padding-top: root.wide ? 28px : 16px; spacing:20px;
+                    // Page header
+                    HorizontalLayout { spacing:14px;
+                        if root.page=="service": VerticalLayout { alignment:center; Avatar { service:root.selected-service; size:3rem; } }
+                        VerticalLayout { spacing:4px; horizontal-stretch:1; min-width:0px; alignment:center;
+                            Text { text:root.heading; color:T.text; font-size:1.75rem; font-weight:700; wrap:word-wrap; }
+                            Hint { text:root.subheading; font-size:0.9375rem; }
                         }
-                        for item in root.services:ServiceRow { item:item; compact:!root.wide; activate=>{root.selected-service=item.id;root.page="service";root.settings-open=false;root.service-changed(item.id);} }
-                        if root.services.length==0:VerticalLayout { spacing:12px;
-                            Heading { text:"Wszystkie usługi są ukryte"; }
-                            Body { text:"Wybierz usługi, ktęre chcesz widzieć. Ukryte usługi nadal mogą być monitorowane."; }
-                            Action { text:"Wybierz usługi"; clicked=>{root.page="customize";} }
+                        if root.page=="overview": VerticalLayout { alignment:center;
+                            Btn { text:"Odśwież"; icon:@image-url("../assets/icons/refresh.svg"); clicked => { root.refresh-requested(); } }
+                        }
+                        if root.page=="service": VerticalLayout { alignment:center;
+                            Btn { text:"Odśwież"; icon:@image-url("../assets/icons/refresh.svg"); enabled:!root.service-busy; clicked => { root.refresh-requested(); } }
                         }
                     }
-                    if root.page=="customize":VerticalLayout { spacing:16px;
-                        Hint { text:"Zmiany zapisują się automatycznie. Ukrywanie nie wyłącza monitorowania ani licznika na ikonie tray."; }
-                        for item in root.all-services:CustomizeRow { item:item; focus-id:root.move-focus-id; focus-generation:root.move-focus-generation;
-                            visibility(v)=>{root.visibility-requested(item.id,v);}
-                            move(p)=>{root.move-focus-id=item.id;root.move-requested(item.id,p);}
-                        }
-                        Action { text:"Przywróć domyślny układ"; clicked=>{root.reset-layout-requested();} }
-                    }
-                    if root.page=="service":VerticalLayout { spacing:16px;
-                        FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-                            Action { text:root.settings-open?"Wróć do limitów":"Konto i ustawienia"; clicked=>{root.settings-open=!root.settings-open;} }
-                            Action { text:"Odśwież"; enabled:!root.service-busy; clicked=>{root.refresh-requested();} }
-                        }
-                        if root.account-label!="":Body { text:root.account-label; }
-                        Body { text:root.service-status; accessible-live-region:polite; }
-                        if !root.settings-open:VerticalLayout { spacing:16px;
-                            for quota in root.quotas:QuotaRow { item:quota; pin=>{root.pin-requested(quota.id);} }
-                            if root.quotas.length==0:VerticalLayout { spacing:12px;
-                                Heading { text:"Brak odczytanych limitów"; }
-                                Body { text:root.api-service?"Dodaj klucz API i włącz monitorowanie usługi.":"Połącz konto, aby sprawdzić dostępne limity."; }
-                                Action { text:"Otwórz ustawienia konta"; clicked=>{root.settings-open=true;} }
-                            }
-                        }
-                        if root.settings-open:VerticalLayout { spacing:16px;
-                            Heading { text:"Połączenie z usługą"; }
-                            Body { text:root.service-help; }
-                            LabeledCheck { text:"Monitoruj tę usługę"; checked<=>root.edit-enabled; }
-                            if root.selected-service=="claude":VerticalLayout { spacing:8px;
-                                Body { text:"Przeglądarka do logowania"; }
-                                ComboBox { model:["Automatycznie","Google Chrome","Microsoft Edge"]; current-index<=>root.edit-browser; enabled:!root.service-busy; }
-                                Hint { text:"Używana tylko bez Claude Code. Logowanie odbywa się w osobnym zwykłym profilu. Aplikacja nie kopiuje danych z Twojej codziennej przeglądarki."; }
-                            }
-                            if root.api-service:VerticalLayout { spacing:12px;
-                                Body { text:"Klucz API"; }
-                                LineEdit { text<=>root.edit-key; input-type:password; placeholder-text:"Puste pole zachowuje zapisany klucz"; }
-                                LabeledCheck { text:"Zapisz klucz w systemowym magazynie"; checked<=>root.edit-remember; }
-                                Body { text:root.selected-service=="deepseek"?"Kwota odniesienia":"Miesięczny budżet USD"; }
-                                LineEdit { text<=>root.edit-budget; }
-                                if root.selected-service=="deepseek":ComboBox { model:["USD","CNY"]; current-index<=>root.edit-currency; }
-                            }
-                            if root.selected-service=="claude":VerticalLayout { spacing:8px;
-                                Body { text:"Organizacja (UUID, opcjonalnie)"; }
-                                LineEdit { text<=>root.edit-org; }
-                            }
+
+                    if root.auth-busy: Rectangle { vertical-stretch:0;
+                        background:T.accent-soft; border-radius:T.radius; border-width:1px; border-color:T.accent.with-alpha(0.5);
+                        VerticalLayout { padding:20px; spacing:12px;
+                            Heading { text:"Logowanie w toku"; }
+                            Body { text:root.auth-message; accessible-live-region:polite; }
+                            if root.auth-code!="": LineEdit { text:root.auth-code; read-only:true; font-size:1.25rem; }
                             FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-                                Action { text:"Zapisz ustawienia"; enabled:!root.service-busy; clicked=>{root.save-requested();} }
-                                if !root.api-service:Action { text:root.selected-service=="chatgpt"?"Zaloguj się z ChatGPT":"Zaloguj w przeglądarce"; primary:true; enabled:!root.auth-busy && !root.service-busy; clicked=>{root.login-requested(false);} }
-                                if root.selected-service=="chatgpt":Action { text:"Zaloguj kodem"; enabled:!root.auth-busy; clicked=>{root.login-requested(true);} }
+                                Btn { text:"Otwórz stronę logowania"; kind:"primary"; enabled:root.auth-url!=""; clicked => { root.open-auth-requested(); } }
+                                Btn { text:"Anuluj"; clicked => { root.cancel-auth-requested(); } }
+                            }
+                        }
+                    }
+
+                    if root.page=="overview": VerticalLayout { spacing:16px;
+                        for r in ceil(root.services.length / root.cols): HorizontalLayout { spacing:16px;
+                            ServiceCard { item:root.services[r*root.cols]; horizontal-stretch:1; min-width:14rem; preferred-width:0px;
+                                activate => { root.open-service(self.item.id); } }
+                            if root.cols==2 && r*2+1 < root.services.length: ServiceCard { item:root.services[r*2+1]; horizontal-stretch:1; min-width:14rem; preferred-width:0px;
+                                activate => { root.open-service(self.item.id); } }
+                            if root.cols==2 && r*2+1 >= root.services.length: Rectangle { horizontal-stretch:1; min-width:14rem; preferred-width:0px; }
+                        }
+                        if root.services.length==0: Section { title:"Wszystkie usługi są ukryte"; subtitle:"Wybierz usługi, które chcesz widzieć. Ukryte usługi nadal mogą być monitorowane.";
+                            HorizontalLayout { alignment:start; Btn { text:"Wybierz usługi"; kind:"primary"; clicked => { root.page="customize"; } } }
+                        }
+                        if root.services.length>0: HorizontalLayout { alignment:start;
+                            Btn { text:"Dostosuj usługi"; kind:"ghost"; small:true; icon:@image-url("../assets/icons/list.svg"); clicked => { root.page="customize"; } }
+                        }
+                    }
+
+                    if root.page=="customize": VerticalLayout { spacing:12px;
+                        Hint { text:"Zmiany zapisują się automatycznie. Ukrywanie nie wyłącza monitorowania ani licznika na ikonie tray."; }
+                        for item in root.all-services: CustomizeRow { item:item; count:root.all-services.length; compact:!root.wide;
+                            focus-id:root.move-focus-id; focus-generation:root.move-focus-generation;
+                            visibility(v) => { root.visibility-requested(item.id,v); }
+                            move(p) => { root.move-focus-id=item.id; root.move-requested(item.id,p); }
+                        }
+                        HorizontalLayout { alignment:start; padding-top:4px;
+                            Btn { text:"Przywróć domyślny układ"; kind:"ghost"; clicked => { root.reset-layout-requested(); } }
+                        }
+                    }
+
+                    if root.page=="service": VerticalLayout { spacing:16px;
+                        HorizontalLayout { alignment:start;
+                            Rectangle { background:T.track; border-radius:10px; vertical-stretch:0;
+                                HorizontalLayout { padding:3px; spacing:2px;
+                                    Btn { text:"Limity"; small:true; kind:!root.settings-open ? "seg-on" : "seg-off"; clicked => { root.settings-open=false; } }
+                                    Btn { text:"Konto i ustawienia"; small:true; kind:root.settings-open ? "seg-on" : "seg-off"; clicked => { root.settings-open=true; } }
+                                }
+                            }
+                        }
+                        if root.account-label!="" || root.service-status!="": HorizontalLayout { spacing:10px;
+                            if root.account-label!="": VerticalLayout { alignment:center; Chip { text:root.account-label; tone:T.accent-text; dot:false; } }
+                            Hint { text:root.service-status; accessible-live-region:polite; horizontal-stretch:1; vertical-alignment:center; }
+                        }
+                        if !root.settings-open: VerticalLayout { spacing:16px;
+                            for r in ceil(root.quotas.length / root.cols): HorizontalLayout { spacing:16px;
+                                QuotaCard { item:root.quotas[r*root.cols]; horizontal-stretch:1; min-width:14rem; preferred-width:0px; pin => { root.pin-requested(self.item.id); } }
+                                if root.cols==2 && r*2+1 < root.quotas.length: QuotaCard { item:root.quotas[r*2+1]; horizontal-stretch:1; min-width:14rem; preferred-width:0px; pin => { root.pin-requested(self.item.id); } }
+                                if root.cols==2 && r*2+1 >= root.quotas.length: Rectangle { horizontal-stretch:1; min-width:14rem; preferred-width:0px; }
+                            }
+                            if root.quotas.length==0: Section { title:"Brak odczytanych limitów";
+                                subtitle: root.api-service ? "Dodaj klucz API i włącz monitorowanie usługi." : "Połącz konto, aby sprawdzić dostępne limity.";
+                                HorizontalLayout { alignment:start; Btn { text:"Otwórz ustawienia konta"; kind:"primary"; clicked => { root.settings-open=true; } } }
+                            }
+                        }
+                        if root.settings-open: VerticalLayout { spacing:16px;
+                            Section { title:"Połączenie z usługą"; subtitle:root.service-help;
+                                ToggleRow { text:"Monitoruj tę usługę"; checked<=>root.edit-enabled; }
+                                if root.selected-service=="claude": VerticalLayout { spacing:6px;
+                                    Label { text:"Przeglądarka do logowania"; }
+                                    ComboBox { model:["Automatycznie","Google Chrome","Microsoft Edge"]; current-index<=>root.edit-browser; enabled:!root.service-busy; }
+                                    Hint { text:"Używana tylko bez Claude Code. Logowanie odbywa się w osobnym zwykłym profilu. Aplikacja nie kopiuje danych z Twojej codziennej przeglądarki."; }
+                                }
+                                if root.api-service: VerticalLayout { spacing:6px;
+                                    Label { text:"Klucz API"; }
+                                    LineEdit { text<=>root.edit-key; input-type:password; placeholder-text:"Puste pole zachowuje zapisany klucz"; }
+                                }
+                                if root.api-service: ToggleRow { text:"Zapisz klucz w systemowym magazynie"; checked<=>root.edit-remember; }
+                                if root.api-service: VerticalLayout { spacing:6px;
+                                    Label { text:root.selected-service=="deepseek" ? "Kwota odniesienia" : "Miesięczny budżet USD"; }
+                                    HorizontalLayout { spacing:8px;
+                                        LineEdit { text<=>root.edit-budget; horizontal-stretch:1; }
+                                        if root.selected-service=="deepseek": ComboBox { model:["USD","CNY"]; current-index<=>root.edit-currency; width:7rem; }
+                                    }
+                                }
+                                if root.selected-service=="claude": VerticalLayout { spacing:6px;
+                                    Label { text:"Organizacja (UUID, opcjonalnie)"; }
+                                    LineEdit { text<=>root.edit-org; }
+                                }
+                                FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
+                                    if !root.api-service: Btn { text:root.selected-service=="chatgpt" ? "Zaloguj się z ChatGPT" : "Zaloguj w przeglądarce"; kind:"primary"; enabled:!root.auth-busy && !root.service-busy; clicked => { root.login-requested(false); } }
+                                    if root.selected-service=="chatgpt": Btn { text:"Zaloguj kodem"; enabled:!root.auth-busy; clicked => { root.login-requested(true); } }
+                                    Btn { text:"Zapisz ustawienia"; kind:root.api-service ? "primary" : "secondary"; enabled:!root.service-busy; clicked => { root.save-requested(); } }
+                                }
+                            }
+                            Section { title: root.api-service ? "Zapisany klucz" : "Konto";
+                                subtitle: root.api-service ? "Usuwa klucz z systemowego magazynu na tym komputerze." : "Wylogowanie usuwa zapisane logowanie tej usługi z aplikacji.";
+                                HorizontalLayout { alignment:start;
+                                    if root.api-service: Btn { text:"Usuń zapisany klucz"; kind:"danger"; clicked => { root.delete-key-requested(); } }
+                                    if !root.api-service: Btn { text:"Wyloguj konto"; kind:"danger"; enabled:!root.auth-busy && !root.service-busy; clicked => { root.logout-requested(); } }
+                                }
+                            }
+                        }
+                    }
+
+                    if root.page=="settings": VerticalLayout { spacing:16px;
+                        Section { title:"Wygląd i czytelność"; subtitle:"Zmiany wyglądu zapisują się automatycznie.";
+                            SettingRow { text:"Motyw"; stacked:!root.wide;
+                                HorizontalLayout { alignment:start; Rectangle { background:T.track; border-radius:10px; vertical-stretch:0;
+                                    HorizontalLayout { padding:3px; spacing:2px;
+                                        for t[i] in ["Systemowy","Jasny","Ciemny"]: Btn { text:t; small:true; kind:root.appearance==i ? "seg-on" : "seg-off";
+                                            clicked => { root.appearance=i; root.appearance-requested(); } }
+                                    }
+                                } }
                             }
                             Rule {}
+                            SettingRow { text:"Rozmiar tekstu"; stacked:!root.wide;
+                                HorizontalLayout { alignment:start; Rectangle { background:T.track; border-radius:10px; vertical-stretch:0;
+                                    HorizontalLayout { padding:3px; spacing:2px;
+                                        for s in [100,125,150,200]: Btn { text:s+"%"; small:true; kind:root.text-scale==s ? "seg-on" : "seg-off";
+                                            clicked => { root.text-scale=s; root.appearance-requested(); } }
+                                    }
+                                } }
+                            }
+                            Rule {}
+                            SettingRow { text:"Kolejność i widoczność usług"; hint:"Ukryj usługi albo zmień ich kolejność."; stacked:!root.wide;
+                                HorizontalLayout { alignment:start; Btn { text:"Dostosuj usługi"; icon:@image-url("../assets/icons/list.svg"); clicked => { root.page="customize"; } } }
+                            }
+                        }
+                        Section { title:"Limity i praca w tle"; subtitle:"Te opcje zapisuje przycisk na dole sekcji.";
+                            ToggleRow { text:"Pokaż pozostały limit zamiast wykorzystanego"; checked<=>root.edit-show-remaining;
+                                hint:"Dotyczy ChatGPT/Codex i Claude. Procenty własnych budżetów API i salda mają osobną opcję poniżej."; }
+                            Rule {}
+                            ToggleRow { text:"Pokaż, ile procent kwoty odniesienia pozostało w API rozliczanych w walucie"; checked<=>root.edit-show-api-remaining;
+                                hint:"Dotyczy salda DeepSeek oraz budżetów OpenAI API i Anthropic API. Kwota w walucie się nie zmienia, zmienia się tylko procent."; }
+                            Rule {}
+                            SettingRow { text:"Odświeżanie co (sekundy)"; hint:"Od 60 do 3600 sekund."; stacked:!root.wide; 
+                                HorizontalLayout { alignment:start; LineEdit { text<=>root.interval-text; horizontal-alignment:right; width:8rem; } }
+                            }
+                            Rule {}
+                            ToggleRow { text:"Uruchamiaj aplikację schowaną do tray"; checked<=>root.edit-hidden; }
+                            HorizontalLayout { alignment:start; padding-top:4px;
+                                Btn { text:"Zapisz opcje aplikacji"; kind:"primary"; clicked => { root.general-save-requested(); } }
+                            }
+                        }
+                        Section { title:"Aplikacja";
                             FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-                                if root.api-service:Action { text:"Usuń zapisany klucz"; clicked=>{root.delete-key-requested();} }
-                                if !root.api-service:Action { text:"Wyloguj konto"; enabled:!root.auth-busy && !root.service-busy; clicked=>{root.logout-requested();} }
+                                Btn { text:"O aplikacji"; icon:@image-url("../assets/icons/info.svg"); clicked => { root.page="about"; } }
+                                Btn { text:"Schowaj do tray"; icon:@image-url("../assets/icons/tray.svg"); clicked => { root.hide-requested(); } }
+                                Btn { text:"Zamknij aplikację"; kind:"danger"; icon:@image-url("../assets/icons/power.svg"); clicked => { root.quit-requested(); } }
                             }
                         }
                     }
-                    if root.page=="settings":VerticalLayout { spacing:16px;
-                        Heading { text:"Wygląd i czytelność"; }
-                        Hint { text:"Zmiany wyglądu zapisują się automatycznie."; }
-                        Body { text:"Motyw"; }
-                        ComboBox { model:["Systemowy","Jasny","Ciemny"]; current-index<=>root.appearance; selected(i)=>{root.appearance-requested();} }
-                        Body { text:"Rozmiar tekstu"; }
-                        ComboBox { model:["100%","125%","150%","200%"]; current-index:root.text-scale==125?1:root.text-scale==150?2:root.text-scale==200?3:0; selected(i)=>{root.text-scale=self.current-index==1?125:self.current-index==2?150:self.current-index==3?200:100;root.appearance-requested();} }
-                        Action { text:"Dostosuj usługi"; clicked=>{root.page="customize";} }
-                        Rule {}
-                        Heading { text:"Limity i praca w tle"; }
-                        LabeledCheck { text:"Pokaż pozostały limit zamiast wykorzystanego"; checked<=>root.edit-show-remaining; }
-                        Hint { text:"Dotyczy ChatGPT/Codex i Claude. Procenty własnych budżetów API i salda mają osobną opcję poniżej."; }
-                        LabeledCheck { text:"Pokaż, ile procent kwoty odniesienia pozostało w API rozliczanych w walucie"; checked<=>root.edit-show-api-remaining; }
-                        Hint { text:"Dotyczy salda DeepSeek oraz budżetów OpenAI API i Anthropic API. Kwota w walucie się nie zmienia, zmienia się tylko procent."; }
-                        Body { text:"Odświeżanie co (sekundy, 60–3600)"; }
-                        LineEdit { text<=>root.interval-text; }
-                        LabeledCheck { text:"Uruchamiaj aplikację schowaną do tray"; checked<=>root.edit-hidden; }
-                        Action { text:"Zapisz opcje aplikacji"; clicked=>{root.general-save-requested();} }
-                        Rule {}
-                        FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-                            Action { text:"O aplikacji"; clicked=>{root.page="about";} }
-                            Action { text:"Zamknij aplikację"; clicked=>{root.quit-requested();} }
+
+                    if root.page=="about": VerticalLayout { spacing:16px;
+                        Card {
+                            VerticalLayout { padding:28px; spacing:18px;
+                                HorizontalLayout { spacing:18px;
+                                    Image { source:@image-url("../assets/ai-gauge.svg"); width:4.5rem; height:4.5rem; }
+                                    VerticalLayout { alignment:center; spacing:6px; horizontal-stretch:1;
+                                        Text { text:"AI Gauge"; color:T.text; font-size:1.5rem; font-weight:700; }
+                                        HorizontalLayout { alignment:start; spacing:8px;
+                                            Chip { text:"Wersja " + root.app-version; tone:T.accent-text; dot:false; }
+                                            Chip { text:"Licencja MIT"; dot:false; }
+                                        }
+                                    }
+                                }
+                                Body { text:"Limity i środki usług AI w jednym miejscu: ChatGPT / Codex, Claude Code, OpenAI API, Anthropic API i DeepSeek. Działa w tle i pokazuje wybrany limit na ikonie tray."; color:T.muted; }
+                                Rule {}
+                                HorizontalLayout { spacing:16px;
+                                    VerticalLayout { alignment:center; horizontal-stretch:1;
+                                        Hint { text:"Natywna aplikacja napisana w Rust z interfejsem Slint."; }
+                                    }
+                                    AboutSlint { width:180px; height:100px; }
+                                }
+                            }
                         }
                     }
-                    if root.page=="about":VerticalLayout { spacing:16px;
-                        Heading { text:"AI Gauge " + root.app-version; }
-                        Body { text:"Limity i środki usług AI. Rust + Slint."; }
-                        HorizontalLayout { alignment:start;
-                            AboutSlint { width:200px; height:110px; }
-                        }
-                    }
-                    if root.auth-busy:VerticalLayout { spacing:12px;
-                        Rule {}
-                        Body { text:root.auth-message; accessible-live-region:polite; }
-                        if root.auth-code!="":LineEdit { text:root.auth-code; read-only:true; }
-                        FlexboxLayout { cross-axis-alignment:center; flex-wrap:wrap; spacing:8px;
-                            Action { text:"Otwórz stronę logowania"; enabled:root.auth-url!=""; clicked=>{root.open-auth-requested();} }
-                            Action { text:"Anuluj"; clicked=>{root.cancel-auth-requested();} }
-                        }
-                    }
-                    Rule {}
-                    Hint { text:root.notice; accessible-live-region:polite; }
-                    Action { text:"Schowaj do tray"; clicked=>{root.hide-requested();} }
                     Rectangle { vertical-stretch:1; }
+                }
+            }
+            if root.notice!="": Rectangle { background:T.side; vertical-stretch:0;
+                Rectangle { y:0; height:1px; background:T.line; }
+                HorizontalLayout { padding-left: root.wide ? 32px : 16px; padding-right:self.padding-left; padding-top:10px; padding-bottom:10px; spacing:10px;
+                    VerticalLayout { alignment:center; Rectangle { width:7px; height:7px; border-radius:3.5px; background:T.accent; } }
+                    Hint { text:root.notice; accessible-live-region:polite; horizontal-stretch:1; vertical-alignment:center; wrap:no-wrap; overflow:elide; }
                 }
             }
         }
     }
     }
 }
-
