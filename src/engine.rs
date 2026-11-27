@@ -490,11 +490,7 @@ impl Engine {
                     };
                     providers::codex(&v)
                 } else if via_claude_code {
-                    let mut rows = providers::claude(&claude_code::usage()?)?;
-                    for m in &mut rows {
-                        m.source = "Claude Code (oficjalne logowanie konta Claude)".into();
-                    }
-                    Ok(rows)
+                    claude_code::read(&this.0.store.root)
                 } else if login {
                     this.0.browser.login(s, &cfg)?;
                     Ok(vec![])
@@ -594,7 +590,7 @@ impl Engine {
             )?;
             providers::codex(&v)
         } else if s == Service::Claude && claude_code::available() {
-            providers::claude(&claude_code::usage()?)
+            claude_code::read(&self.0.store.root)
         } else {
             self.0.browser.refresh(s, &cfg)
         }

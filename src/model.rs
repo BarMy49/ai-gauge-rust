@@ -261,7 +261,12 @@ impl Metric {
     pub fn current(&self, interval: u64) -> bool {
         self.error.is_none()
             && Utc::now().signed_duration_since(self.fetched).num_seconds()
-                <= (interval * 2).max(90) as i64
+                <= (interval * 2).max(if self.service == Service::Claude {
+                    // Claude limits are asked for at most every 5 minutes.
+                    660
+                } else {
+                    90
+                }) as i64
     }
     pub fn shows_remaining(&self, show_remaining: impl Into<Remaining>) -> bool {
         let r = show_remaining.into();

@@ -158,6 +158,7 @@ export component MainWindow inherits Window {
     in-out property<string> interval-text:"300";
     in-out property<bool> edit-hidden;
     in-out property<bool> edit-show-remaining;
+    in property<string> app-version;
     in-out property<bool> edit-show-api-remaining;
     callback service-changed(string);
     callback navigation-changed(int);
@@ -293,9 +294,11 @@ export component MainWindow inherits Window {
                         }
                     }
                     if root.page=="about":VerticalLayout { spacing:16px;
-                        Heading { text:"AI Gauge 0.3"; }
+                        Heading { text:"AI Gauge " + root.app-version; }
                         Body { text:"Limity i środki usług AI. Rust + Slint."; }
-                        AboutSlint {}
+                        HorizontalLayout { alignment:start;
+                            AboutSlint { width:200px; height:110px; }
+                        }
                     }
                     if root.auth-busy:VerticalLayout { spacing:12px;
                         Rule {}

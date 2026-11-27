@@ -226,6 +226,7 @@ pub fn run(engine: Engine, hidden: bool) -> Result<()> {
     app.set_interval_text(s.config.interval.to_string().into());
     app.set_edit_hidden(s.config.hidden);
     app.set_edit_show_remaining(s.config.show_remaining);
+    app.set_app_version(env!("CARGO_PKG_VERSION").into());
     app.set_edit_show_api_remaining(s.config.show_api_remaining);
     render(&app, &s);
     let e = engine.clone();
