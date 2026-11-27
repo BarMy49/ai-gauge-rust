@@ -1,4 +1,4 @@
-# Sprawdzenie AI Gauge Rust 0.3.0
+# Sprawdzenie AI Gauge Rust 0.3.1
 
 ## Aktualizacja: liczniki przez CLI, Gemini usunięte (27 listopada 2026)
 
