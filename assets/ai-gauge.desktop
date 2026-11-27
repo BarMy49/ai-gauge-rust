@@ -5,5 +5,5 @@ Comment=AI usage and balance monitor
 Exec=ai-gauge
 Icon=ai-gauge
 Terminal=false
-Categories=Utility;Network;
+Categories=Utility;
 StartupNotify=true

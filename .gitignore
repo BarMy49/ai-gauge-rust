@@ -16,3 +16,4 @@ Thumbs.db
 /auth-client/
 /settings.json
 /instance.lock
+/dist/
