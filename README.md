@@ -127,6 +127,14 @@ dbus-run-session -- xvfb-run -a target/release/ai-gauge --smoke-test
 
 [GitHub Actions](.github/workflows/build.yml) runs formatting, tests, Clippy, release builds, and GUI startup checks on Windows and Ubuntu for pushes and pull requests. Successful runs upload executable artifacts. The UI, icons, and page adapter are embedded, so source assets need not accompany the executable. Linux executables still require the desktop libraries listed above.
 
+### Releasing
+
+1. Bump `version` in `Cargo.toml`.
+2. Add a `## <version> — <date>` section to [CHANGELOG.md](CHANGELOG.md) describing every change.
+3. Push a tag `v<version>`. The [Release workflow](.github/workflows/release.yml) refuses to build without a changelog section, then publishes that section as the release notes together with the files.
+
+Editing `CHANGELOG.md` on `master` later updates the notes of existing releases automatically.
+
 ## Troubleshooting
 
 - **Cargo not found:** restart the terminal after installing rustup and check that its Cargo bin directory is on `PATH`.

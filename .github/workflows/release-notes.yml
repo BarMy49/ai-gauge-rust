@@ -1,0 +1,28 @@
+name: Release notes
+# Copies each CHANGELOG.md section to the GitHub release with the same
+# version, so edits to the changelog reach releases that already exist.
+on:
+  push:
+    branches: [master]
+    paths: [CHANGELOG.md]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName'); do
+            if bash ci/release-notes.sh "$tag" > notes.md 2>/dev/null; then
+              gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+              echo "Updated notes for $tag"
+            else
+              echo "No CHANGELOG.md section for $tag, left as it is"
+            fi
+          done
