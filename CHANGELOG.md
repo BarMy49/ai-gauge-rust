@@ -3,7 +3,7 @@
 Every release on GitHub uses the section for its version from this file as its
 release notes. Add a section here before tagging a new version.
 
-## Unreleased
+## 4.0.1 — 2026-11-28
 
 ### Fixed
 - **ChatGPT / Codex sign-in on ARM computers.** Without Codex CLI installed, the app
