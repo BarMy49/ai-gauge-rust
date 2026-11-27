@@ -3,7 +3,7 @@
 Every release on GitHub uses the section for its version from this file as its
 release notes. Add a section here before tagging a new version.
 
-## Unreleased
+## 4.0.0 — 2026-11-28
 
 ### Changed
 - **New look for the whole window.** The app has its own light and dark color theme
