@@ -1,0 +1,126 @@
+name: Release
+# Builds Windows, Fedora (x86_64 and aarch64) and AppImage binaries and
+# publishes them as a GitHub release. Runs when a tag like v0.3.0 is pushed,
+# or by hand from the Actions tab (it then creates the tag itself).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create, for example v0.3.0'
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.97.0'
+      - run: cargo test --locked
+      - run: cargo build --locked --release
+      - name: Test desktop GUI startup
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath target/release/ai-gauge.exe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw 'GUI smoke test failed' }
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item target/release/ai-gauge.exe dist/AI-Gauge-Windows-x64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+
+  fedora:
+    # Both architectures build inside a Fedora 43 container; aarch64 runs
+    # under QEMU emulation, so it works on standard GitHub runners.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            platform: linux/amd64
+          - arch: aarch64
+            platform: linux/arm64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - run: docker run --rm --platform ${{ matrix.platform }} -v "$PWD:/src" -w /src fedora:43 bash ci/fedora-build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fedora-${{ matrix.arch }}
+          path: dist/*
+
+  appimage:
+    # Built on an older distribution so the AppImage runs on more systems.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.97.0'
+      - run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libfontconfig1-dev libxkbcommon0 libxkbcommon-x11-0 libx11-6 libxcursor1 libxi6 libxrandr2 libxcb-shape0 libxcb-xfixes0 xvfb xauth dbus-x11 file
+      - run: cargo build --locked --release
+      - run: dbus-run-session -- xvfb-run -a target/release/ai-gauge --smoke-test
+      - name: Build AppImage
+        run: |
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/scalable/apps dist
+          cp target/release/ai-gauge AppDir/usr/bin/
+          cp assets/ai-gauge.desktop AppDir/usr/share/applications/
+          cp assets/ai-gauge.desktop AppDir/
+          cp assets/ai-gauge.svg AppDir/usr/share/icons/hicolor/scalable/apps/
+          cp assets/ai-gauge.svg AppDir/
+          cat > AppDir/AppRun <<'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          exec "$HERE/usr/bin/ai-gauge" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          curl -sSfL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run AppDir dist/AI-Gauge-x86_64.AppImage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: dist/*
+
+  release:
+    needs: [windows, fedora, appimage]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: |
+          cd dist
+          sha256sum * > SHA256SUMS.txt
+          ls -la
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: AI Gauge ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: dist/*
