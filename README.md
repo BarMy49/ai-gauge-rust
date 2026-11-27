@@ -4,6 +4,20 @@ Native Rust desktop app for monitoring AI usage limits and API balances in the s
 
 Supports **Windows x64 (MSVC)** and **Linux x86-64**. macOS is not supported. The application interface is currently in Polish. See the [Polish user guide](README.pl.md) for detailed account setup and usage.
 
+## Install a release
+
+Download the file for your system from [Releases](https://github.com/BarMy49/ai-gauge-rust/releases):
+
+- **Windows x64:** `AI-Gauge-Windows-x64.exe`. Run it directly; no installer is needed.
+- **Fedora x86_64 / aarch64:** `ai-gauge-<version>-1.fc43.<arch>.rpm`. Install it with
+  `sudo dnf install ./ai-gauge-*.rpm`; dnf pulls in the needed desktop libraries. Start
+  **AI Gauge** from the app menu or run `ai-gauge`. Remove it with `sudo dnf remove ai-gauge`.
+- **Other Linux (x86_64):** `AI-Gauge-x86_64.AppImage`. Make it executable
+  (`chmod +x AI-Gauge-x86_64.AppImage`) and run it.
+
+`SHA256SUMS.txt` lists the checksums of all files. Then install the CLIs described in
+[Required CLI tools](#required-cli-tools).
+
 ## Clone and run
 
 Install [Git](https://git-scm.com/) and [Rust through rustup](https://rustup.rs/), plus the prerequisites below. `rust-toolchain.toml` selects Rust 1.97.0 and the formatting/lint tools automatically. Keep `Cargo.lock` to use the tested dependency versions.
